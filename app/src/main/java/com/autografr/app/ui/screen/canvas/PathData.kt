@@ -1,7 +1,6 @@
 package com.autografr.app.ui.screen.canvas
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import com.autografr.app.domain.model.DrawingPath
 import com.autografr.app.domain.model.PathPoint
@@ -22,7 +21,7 @@ fun DrawingPath.toComposePath(): Path {
         val curr = points[i]
         val midX = (prev.x + curr.x) / 2f
         val midY = (prev.y + curr.y) / 2f
-        path.quadraticBezierTo(prev.x, prev.y, midX, midY)
+        path.quadraticTo(prev.x, prev.y, midX, midY)
     }
 
     val last = points.last()
@@ -47,7 +46,7 @@ fun List<PathPoint>.toComposePath(): Path {
         val curr = this[i]
         val midX = (prev.x + curr.x) / 2f
         val midY = (prev.y + curr.y) / 2f
-        path.quadraticBezierTo(prev.x, prev.y, midX, midY)
+        path.quadraticTo(prev.x, prev.y, midX, midY)
     }
 
     path.lineTo(last().x, last().y)

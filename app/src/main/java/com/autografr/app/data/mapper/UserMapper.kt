@@ -66,6 +66,18 @@ object UserMapper {
         socialLinks = celebrity.socialLinks
     )
 
+    fun entityToCelebrity(entity: UserEntity): Celebrity = Celebrity(
+        user = entityToDomain(entity),
+        verificationStatus = entity.verificationStatus?.let { VerificationStatus.valueOf(it) }
+            ?: VerificationStatus.UNVERIFIED,
+        category = entity.category ?: "",
+        autographPrice = entity.autographPrice ?: 0.0,
+        isAcceptingRequests = entity.isAcceptingRequests ?: true,
+        totalAutographs = entity.totalAutographs ?: 0,
+        rating = entity.rating ?: 0f,
+        socialLinks = emptyMap()
+    )
+
     fun entityToDomain(entity: UserEntity): User = User(
         id = entity.id,
         email = entity.email,

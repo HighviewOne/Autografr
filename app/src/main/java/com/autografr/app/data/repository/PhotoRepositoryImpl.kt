@@ -1,5 +1,6 @@
 package com.autografr.app.data.repository
 
+import android.util.Log
 import com.autografr.app.data.local.dao.SignedPhotoDao
 import com.autografr.app.data.mapper.PhotoMapper
 import com.autografr.app.data.remote.datasource.FirebaseStorageDataSource
@@ -9,7 +10,6 @@ import com.autografr.app.domain.model.SignedPhoto
 import com.autografr.app.domain.repository.PhotoRepository
 import com.autografr.app.domain.util.Result
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -63,16 +63,28 @@ class PhotoRepositoryImpl @Inject constructor(
 
             Result.success(updatedPhoto)
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to save signed photo ${photo.id}", e)
             Result.error(e.message ?: "Failed to save signed photo", e)
+        }
+    }
+
+    override suspend fun uploadOriginalPhoto(photoId: String, imageBytes: ByteArray): Result<String> {
+        return try {
+            val url = storageDataSource.uploadOriginalPhotoBytes(photoId, imageBytes)
+            Result.success(url)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to upload original photo $photoId", e)
+            Result.error(e.message ?: "Failed to upload original photo", e)
         }
     }
 
     override suspend fun getPhoto(photoId: String): Result<SignedPhoto> {
         return try {
-            val dto = firestoreDataSource.getPhotoById(photoId).first()
+            val dto = firestoreDataSource.getPhoto(photoId)
                 ?: return Result.error("Photo not found")
             Result.success(PhotoMapper.dtoToDomain(dto))
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to get photo $photoId", e)
             Result.error(e.message ?: "Failed to get photo", e)
         }
     }
@@ -82,7 +94,12 @@ class PhotoRepositoryImpl @Inject constructor(
             signedPhotoDao.deletePhoto(photoId)
             Result.success(Unit)
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete photo $photoId", e)
             Result.error(e.message ?: "Failed to delete photo", e)
         }
+    }
+
+    companion object {
+        private const val TAG = "PhotoRepository"
     }
 }

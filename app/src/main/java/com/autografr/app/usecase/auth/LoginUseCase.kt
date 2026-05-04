@@ -1,5 +1,6 @@
 package com.autografr.app.usecase.auth
 
+import android.util.Patterns
 import com.autografr.app.domain.model.User
 import com.autografr.app.domain.repository.AuthRepository
 import com.autografr.app.domain.util.Result
@@ -10,6 +11,7 @@ class LoginUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(email: String, password: String): Result<User> {
         if (email.isBlank()) return Result.error("Email is required")
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) return Result.error("Invalid email address")
         if (password.isBlank()) return Result.error("Password is required")
         return authRepository.login(email, password)
     }

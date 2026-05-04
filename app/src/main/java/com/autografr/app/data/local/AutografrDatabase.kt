@@ -20,8 +20,8 @@ import com.autografr.app.data.local.entity.UserEntity
         RequestEntity::class,
         TransactionEntity::class
     ],
-    version = 1,
-    exportSchema = false
+    version = 3,
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class AutografrDatabase : RoomDatabase() {

@@ -14,8 +14,7 @@ data class BrushConfig(
     val type: BrushType = BrushType.PEN,
     val color: Color = Color.Black,
     val strokeWidth: Float = 5f,
-    val alpha: Float = 1f,
-    val pressureSensitive: Boolean = true
+    val alpha: Float = 1f
 ) {
     companion object {
         val DEFAULT = BrushConfig()

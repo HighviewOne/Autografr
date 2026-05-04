@@ -1,5 +1,6 @@
 package com.autografr.app.data.repository
 
+import android.util.Log
 import com.autografr.app.data.local.dao.UserDao
 import com.autografr.app.data.mapper.UserMapper
 import com.autografr.app.data.remote.datasource.FirebaseAuthDataSource
@@ -34,12 +35,14 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun login(email: String, password: String): Result<User> {
         return try {
             val firebaseUser = authDataSource.signInWithEmail(email, password)
+                ?: return Result.error("Sign in failed. Please try again.")
             val userDto = firestoreDataSource.getUser(firebaseUser.uid)
                 ?: return Result.error("User profile not found")
             val user = UserMapper.dtoToDomain(userDto)
             userDao.insertUser(UserMapper.dtoToEntity(userDto))
             Result.success(user)
         } catch (e: Exception) {
+            Log.e(TAG, "Login failed", e)
             Result.error(e.message ?: "Login failed", e)
         }
     }
@@ -51,6 +54,7 @@ class AuthRepositoryImpl @Inject constructor(
     ): Result<User> {
         return try {
             val firebaseUser = authDataSource.createAccount(email, password)
+                ?: return Result.error("Account creation failed. Please try again.")
             val userDto = UserDto(
                 id = firebaseUser.uid,
                 email = email,
@@ -63,11 +67,16 @@ class AuthRepositoryImpl @Inject constructor(
             userDao.insertUser(UserMapper.dtoToEntity(userDto))
             Result.success(user)
         } catch (e: Exception) {
+            Log.e(TAG, "Registration failed", e)
             Result.error(e.message ?: "Registration failed", e)
         }
     }
 
     override fun logout() {
         authDataSource.signOut()
+    }
+
+    companion object {
+        private const val TAG = "AuthRepository"
     }
 }

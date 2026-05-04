@@ -29,6 +29,12 @@ class FirebaseStorageDataSource @Inject constructor(
         return ref.downloadUrl.await().toString()
     }
 
+    suspend fun uploadOriginalPhotoBytes(photoId: String, imageBytes: ByteArray): String {
+        val ref = storage.reference.child("$ORIGINAL_PHOTOS_PATH/$photoId.jpg")
+        ref.putBytes(imageBytes).await()
+        return ref.downloadUrl.await().toString()
+    }
+
     suspend fun uploadSignedPhoto(photoId: String, imageBytes: ByteArray): String {
         val ref = storage.reference.child("$SIGNED_PHOTOS_PATH/$photoId.jpg")
         ref.putBytes(imageBytes).await()

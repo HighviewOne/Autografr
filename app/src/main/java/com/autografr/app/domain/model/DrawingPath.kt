@@ -15,5 +15,6 @@ data class DrawingPath(
     val color: Color = Color.Black,
     val strokeWidth: Float = 5f,
     val alpha: Float = 1f,
-    val isEraser: Boolean = false
+    val isEraser: Boolean = false,
+    val brushType: BrushType = BrushType.PEN
 )

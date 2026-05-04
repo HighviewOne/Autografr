@@ -25,7 +25,7 @@ object DatabaseModule {
             context,
             AutografrDatabase::class.java,
             AutografrDatabase.DATABASE_NAME
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides

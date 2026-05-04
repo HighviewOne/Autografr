@@ -35,26 +35,20 @@ class FeedViewModel @Inject constructor(
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
 
     init {
+        _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             getCurrentUserUseCase().collect { user ->
                 _uiState.update { it.copy(currentUser = user) }
             }
         }
-        loadFeed()
-    }
-
-    private fun loadFeed() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            launch {
-                getTrendingUseCase(10).collect { photos ->
-                    _uiState.update { it.copy(trending = photos) }
-                }
+            getTrendingUseCase(10).collect { photos ->
+                _uiState.update { it.copy(trending = photos, isLoading = false) }
             }
-            launch {
-                userRepository.getVerifiedCelebrities().collect { celebrities ->
-                    _uiState.update { it.copy(featuredCelebrities = celebrities, isLoading = false) }
-                }
+        }
+        viewModelScope.launch {
+            userRepository.getVerifiedCelebrities().collect { celebrities ->
+                _uiState.update { it.copy(featuredCelebrities = celebrities, isLoading = false) }
             }
         }
     }

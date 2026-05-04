@@ -25,14 +25,12 @@ class FirebaseAuthDataSource @Inject constructor(
         awaitClose { auth.removeAuthStateListener(listener) }
     }
 
-    suspend fun signInWithEmail(email: String, password: String): FirebaseUser {
-        val result = auth.signInWithEmailAndPassword(email, password).await()
-        return result.user ?: throw IllegalStateException("Sign in succeeded but user is null")
+    suspend fun signInWithEmail(email: String, password: String): FirebaseUser? {
+        return auth.signInWithEmailAndPassword(email, password).await().user
     }
 
-    suspend fun createAccount(email: String, password: String): FirebaseUser {
-        val result = auth.createUserWithEmailAndPassword(email, password).await()
-        return result.user ?: throw IllegalStateException("Account creation succeeded but user is null")
+    suspend fun createAccount(email: String, password: String): FirebaseUser? {
+        return auth.createUserWithEmailAndPassword(email, password).await().user
     }
 
     fun signOut() {

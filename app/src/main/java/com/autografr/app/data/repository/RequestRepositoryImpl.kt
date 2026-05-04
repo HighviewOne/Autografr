@@ -1,5 +1,6 @@
 package com.autografr.app.data.repository
 
+import android.util.Log
 import com.autografr.app.data.local.dao.RequestDao
 import com.autografr.app.data.mapper.RequestMapper
 import com.autografr.app.data.remote.datasource.FirestoreDataSource
@@ -8,8 +9,9 @@ import com.autografr.app.domain.model.RequestStatus
 import com.autografr.app.domain.repository.RequestRepository
 import com.autografr.app.domain.util.Result
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
@@ -27,19 +29,25 @@ class RequestRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getCelebrityQueue(celebrityId: String): Flow<List<AutographRequest>> {
-        return firestoreDataSource.getCelebrityQueue(celebrityId).map { dtos ->
-            val entities = dtos.map { RequestMapper.dtoToEntity(it) }
-            requestDao.insertRequests(entities)
-            dtos.map { RequestMapper.dtoToDomain(it) }
+    override fun getCelebrityQueue(celebrityId: String): Flow<List<AutographRequest>> = channelFlow {
+        launch {
+            firestoreDataSource.getCelebrityQueue(celebrityId).collect { dtos ->
+                requestDao.insertRequests(dtos.map { RequestMapper.dtoToEntity(it) })
+            }
+        }
+        requestDao.getActiveQueue(celebrityId).collect { entities ->
+            send(entities.map { RequestMapper.entityToDomain(it) })
         }
     }
 
-    override fun getFanRequests(fanId: String): Flow<List<AutographRequest>> {
-        return firestoreDataSource.getFanRequests(fanId).map { dtos ->
-            val entities = dtos.map { RequestMapper.dtoToEntity(it) }
-            requestDao.insertRequests(entities)
-            dtos.map { RequestMapper.dtoToDomain(it) }
+    override fun getFanRequests(fanId: String): Flow<List<AutographRequest>> = channelFlow {
+        launch {
+            firestoreDataSource.getFanRequests(fanId).collect { dtos ->
+                requestDao.insertRequests(dtos.map { RequestMapper.dtoToEntity(it) })
+            }
+        }
+        requestDao.getRequestsByFan(fanId).collect { entities ->
+            send(entities.map { RequestMapper.entityToDomain(it) })
         }
     }
 
@@ -56,6 +64,7 @@ class RequestRepositoryImpl @Inject constructor(
             requestDao.insertRequest(RequestMapper.domainToEntity(newRequest))
             Result.success(newRequest)
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to create request", e)
             Result.error(e.message ?: "Failed to create request", e)
         }
     }
@@ -66,7 +75,7 @@ class RequestRepositoryImpl @Inject constructor(
 
     override suspend fun completeRequest(requestId: String, signedPhotoId: String): Result<Unit> {
         return try {
-            val dto = firestoreDataSource.getRequestById(requestId).first()
+            val dto = firestoreDataSource.getRequest(requestId)
                 ?: return Result.error("Request not found")
             val updatedDto = dto.copy(
                 status = RequestStatus.COMPLETED.name,
@@ -77,6 +86,7 @@ class RequestRepositoryImpl @Inject constructor(
             requestDao.insertRequest(RequestMapper.dtoToEntity(updatedDto))
             Result.success(Unit)
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to complete request $requestId", e)
             Result.error(e.message ?: "Failed to complete request", e)
         }
     }
@@ -87,7 +97,7 @@ class RequestRepositoryImpl @Inject constructor(
 
     private suspend fun updateRequestStatus(requestId: String, status: RequestStatus): Result<Unit> {
         return try {
-            val dto = firestoreDataSource.getRequestById(requestId).first()
+            val dto = firestoreDataSource.getRequest(requestId)
                 ?: return Result.error("Request not found")
             val updatedDto = dto.copy(
                 status = status.name,
@@ -97,7 +107,12 @@ class RequestRepositoryImpl @Inject constructor(
             requestDao.insertRequest(RequestMapper.dtoToEntity(updatedDto))
             Result.success(Unit)
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to update request $requestId to $status", e)
             Result.error(e.message ?: "Failed to update request", e)
         }
+    }
+
+    companion object {
+        private const val TAG = "RequestRepository"
     }
 }

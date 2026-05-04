@@ -4,6 +4,7 @@ import com.autografr.app.data.remote.dto.RequestDto
 import com.autografr.app.data.remote.dto.SignedPhotoDto
 import com.autografr.app.data.remote.dto.TransactionDto
 import com.autografr.app.data.remote.dto.UserDto
+import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
@@ -45,7 +46,7 @@ class FirestoreDataSource @Inject constructor(
             .document(userId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
                     return@addSnapshotListener
                 }
                 trySend(snapshot?.toObject(UserDto::class.java))
@@ -59,7 +60,7 @@ class FirestoreDataSource @Inject constructor(
             .whereEqualTo("verificationStatus", "VERIFIED")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
                     return@addSnapshotListener
                 }
                 val users = snapshot?.toObjects(UserDto::class.java) ?: emptyList()
@@ -76,12 +77,20 @@ class FirestoreDataSource @Inject constructor(
             .await()
     }
 
+    suspend fun getPhoto(photoId: String): SignedPhotoDto? {
+        return firestore.collection(PHOTOS_COLLECTION)
+            .document(photoId)
+            .get()
+            .await()
+            .toObject(SignedPhotoDto::class.java)
+    }
+
     fun getPhotoById(photoId: String): Flow<SignedPhotoDto?> = callbackFlow {
         val listener = firestore.collection(PHOTOS_COLLECTION)
             .document(photoId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
                     return@addSnapshotListener
                 }
                 trySend(snapshot?.toObject(SignedPhotoDto::class.java))
@@ -95,7 +104,7 @@ class FirestoreDataSource @Inject constructor(
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
                     return@addSnapshotListener
                 }
                 val photos = snapshot?.toObjects(SignedPhotoDto::class.java) ?: emptyList()
@@ -111,7 +120,7 @@ class FirestoreDataSource @Inject constructor(
             .limit(limit.toLong())
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
                     return@addSnapshotListener
                 }
                 val photos = snapshot?.toObjects(SignedPhotoDto::class.java) ?: emptyList()
@@ -126,7 +135,7 @@ class FirestoreDataSource @Inject constructor(
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
                     return@addSnapshotListener
                 }
                 val photos = snapshot?.toObjects(SignedPhotoDto::class.java) ?: emptyList()
@@ -143,12 +152,20 @@ class FirestoreDataSource @Inject constructor(
             .await()
     }
 
+    suspend fun getRequest(requestId: String): RequestDto? {
+        return firestore.collection(REQUESTS_COLLECTION)
+            .document(requestId)
+            .get()
+            .await()
+            .toObject(RequestDto::class.java)
+    }
+
     fun getRequestById(requestId: String): Flow<RequestDto?> = callbackFlow {
         val listener = firestore.collection(REQUESTS_COLLECTION)
             .document(requestId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
                     return@addSnapshotListener
                 }
                 trySend(snapshot?.toObject(RequestDto::class.java))
@@ -163,7 +180,7 @@ class FirestoreDataSource @Inject constructor(
             .orderBy("createdAt", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
                     return@addSnapshotListener
                 }
                 val requests = snapshot?.toObjects(RequestDto::class.java) ?: emptyList()
@@ -178,7 +195,7 @@ class FirestoreDataSource @Inject constructor(
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
                     return@addSnapshotListener
                 }
                 val requests = snapshot?.toObjects(RequestDto::class.java) ?: emptyList()
@@ -201,7 +218,7 @@ class FirestoreDataSource @Inject constructor(
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
                     return@addSnapshotListener
                 }
                 val transactions = snapshot?.toObjects(TransactionDto::class.java) ?: emptyList()

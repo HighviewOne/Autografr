@@ -17,6 +17,7 @@ data class SignedPhoto(
     val thumbnailUrl: String = "",
     val title: String = "",
     val description: String = "",
+    val price: Double = 0.0,
     val status: PhotoStatus = PhotoStatus.DRAFT,
     val requestId: String? = null,
     val ownerId: String = "",

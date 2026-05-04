@@ -1,9 +1,17 @@
 package com.autografr.app.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "signed_photos")
+@Entity(
+    tableName = "signed_photos",
+    indices = [
+        Index("celebrityId"),
+        Index("ownerId"),
+        Index("status")
+    ]
+)
 data class SignedPhotoEntity(
     @PrimaryKey val id: String,
     val celebrityId: String,
@@ -13,6 +21,7 @@ data class SignedPhotoEntity(
     val thumbnailUrl: String,
     val title: String,
     val description: String,
+    val price: Double,
     val status: String,
     val requestId: String?,
     val ownerId: String,

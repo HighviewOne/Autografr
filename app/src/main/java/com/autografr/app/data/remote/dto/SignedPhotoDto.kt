@@ -9,6 +9,7 @@ data class SignedPhotoDto(
     val thumbnailUrl: String = "",
     val title: String = "",
     val description: String = "",
+    val price: Double = 0.0,
     val status: String = "DRAFT",
     val requestId: String? = null,
     val ownerId: String = "",

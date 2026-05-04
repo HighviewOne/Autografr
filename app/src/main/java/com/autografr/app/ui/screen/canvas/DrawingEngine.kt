@@ -1,9 +1,12 @@
 package com.autografr.app.ui.screen.canvas
 
 import android.graphics.Bitmap
+import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -63,13 +66,17 @@ class DrawingEngine {
             return
         }
 
+        val isEraser = brushConfig.type == BrushType.ERASER
+        val alpha = if (brushConfig.type == BrushType.MARKER) brushConfig.alpha * 0.7f else brushConfig.alpha
+
         val path = DrawingPath(
             id = System.currentTimeMillis().toString(),
             points = currentPoints.toList(),
-            color = if (brushConfig.type == BrushType.ERASER) Color.Transparent else brushConfig.color,
+            color = if (isEraser) Color.Transparent else brushConfig.color,
             strokeWidth = brushConfig.strokeWidth,
-            alpha = brushConfig.alpha,
-            isEraser = brushConfig.type == BrushType.ERASER
+            alpha = alpha,
+            isEraser = isEraser,
+            brushType = brushConfig.type
         )
 
         _paths.add(path)
@@ -134,15 +141,38 @@ class DrawingEngine {
     private fun createPaint(drawingPath: DrawingPath): Paint {
         return Paint().apply {
             color = drawingPath.color.toArgb()
-            strokeWidth = drawingPath.strokeWidth * 3f
             alpha = (drawingPath.alpha * 255).toInt()
             style = Paint.Style.STROKE
-            strokeCap = Paint.Cap.ROUND
-            strokeJoin = Paint.Join.ROUND
             isAntiAlias = true
 
-            if (drawingPath.isEraser) {
-                xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR)
+            when (drawingPath.brushType) {
+                BrushType.PEN -> {
+                    strokeWidth = drawingPath.strokeWidth * STROKE_SCALE
+                    strokeCap = Paint.Cap.ROUND
+                    strokeJoin = Paint.Join.ROUND
+                }
+                BrushType.MARKER -> {
+                    strokeWidth = drawingPath.strokeWidth * 5f
+                    strokeCap = Paint.Cap.SQUARE
+                    strokeJoin = Paint.Join.BEVEL
+                }
+                BrushType.CALLIGRAPHY -> {
+                    strokeWidth = drawingPath.strokeWidth * 4f
+                    strokeCap = Paint.Cap.BUTT
+                    strokeJoin = Paint.Join.ROUND
+                }
+                BrushType.GLOW -> {
+                    strokeWidth = drawingPath.strokeWidth * 5f
+                    strokeCap = Paint.Cap.ROUND
+                    strokeJoin = Paint.Join.ROUND
+                    maskFilter = BlurMaskFilter(drawingPath.strokeWidth * 3f, BlurMaskFilter.Blur.NORMAL)
+                }
+                BrushType.ERASER -> {
+                    strokeWidth = drawingPath.strokeWidth * STROKE_SCALE
+                    strokeCap = Paint.Cap.ROUND
+                    strokeJoin = Paint.Join.ROUND
+                    xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+                }
             }
         }
     }
@@ -158,7 +188,6 @@ class DrawingEngine {
             return path
         }
 
-        // Bezier smoothing for natural-looking curves
         for (i in 1 until points.size) {
             val prev = points[i - 1]
             val curr = points[i]
@@ -171,5 +200,9 @@ class DrawingEngine {
         path.lineTo(last.x * scaleX, last.y * scaleY)
 
         return path
+    }
+
+    companion object {
+        private const val STROKE_SCALE = 3f
     }
 }

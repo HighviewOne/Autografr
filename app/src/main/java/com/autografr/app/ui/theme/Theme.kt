@@ -1,67 +1,41 @@
 package com.autografr.app.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
-private val LightColorScheme = lightColorScheme(
-    primary = InkBlue,
-    onPrimary = SurfaceLight,
-    primaryContainer = InkBlueLight,
-    secondary = Gold,
-    onSecondary = OnSurfaceLight,
-    secondaryContainer = GoldLight,
-    tertiary = Purple,
-    onTertiary = SurfaceLight,
-    tertiaryContainer = PurpleLight,
-    background = BackgroundLight,
-    onBackground = OnSurfaceLight,
-    surface = SurfaceLight,
-    onSurface = OnSurfaceLight,
-    error = Error,
-)
-
-private val DarkColorScheme = darkColorScheme(
-    primary = InkBlueLight,
-    onPrimary = InkBlueDark,
-    primaryContainer = InkBlue,
-    secondary = GoldLight,
-    onSecondary = GoldDark,
-    secondaryContainer = Gold,
-    tertiary = PurpleLight,
-    onTertiary = PurpleDark,
-    tertiaryContainer = Purple,
-    background = BackgroundDark,
-    onBackground = OnSurfaceDark,
-    surface = SurfaceDark,
-    onSurface = OnSurfaceDark,
-    error = Error,
+private val StudioPassColors = lightColorScheme(
+    primary           = Ink,
+    onPrimary         = Paper,
+    primaryContainer  = Ink2,
+    onPrimaryContainer = Paper,
+    secondary         = Foil,
+    onSecondary       = Ink,
+    secondaryContainer = Paper2,
+    onSecondaryContainer = Muted,
+    tertiary          = SignatureRed,
+    onTertiary        = Paper,
+    tertiaryContainer = Paper3,
+    onTertiaryContainer = Ink,
+    background        = Paper,
+    onBackground      = Ink,
+    surface           = Paper,
+    onSurface         = Ink,
+    surfaceVariant    = Paper2,
+    onSurfaceVariant  = Muted,
+    outline           = LineStrong,
+    outlineVariant    = Line,
+    error             = SignatureRed,
+    onError           = Paper,
+    scrim             = Color(0x8C0E0D0B),
 )
 
 @Composable
-fun AutografrTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
+fun AutografrTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        colorScheme = StudioPassColors,
+        typography  = Typography,
+        content     = content
     )
 }

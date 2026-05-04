@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Autografr — Real autographs, authenticated by presence.</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { background: var(--paper); color: var(--ink); }
+    .site { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+    .site-nav { display: flex; align-items: center; justify-content: space-between; padding: 28px 0; }
+    .nav-links { display: flex; gap: 28px; align-items: center; font-size: 13px; font-weight: 500; }
+    .nav-links a { color: var(--ink); text-decoration: none; opacity: 0.75; }
+    .nav-links a:hover { opacity: 1; }
+
+    .hero { padding: 24px 0 40px; position: relative; }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 60px; align-items: center; }
+    .hero h1 { font-family: 'Fraunces', serif; font-weight: 700; font-size: clamp(48px, 6.4vw, 92px); line-height: 0.96; letter-spacing: -0.035em; margin: 0 0 24px; font-variation-settings: 'opsz' 144; text-wrap: balance; }
+    .hero h1 em { font-style: italic; color: var(--signature); font-weight: 600; }
+    .hero p.lede { font-size: 17px; line-height: 1.55; max-width: 480px; color: var(--ink); opacity: 0.78; margin: 0 0 28px; }
+    .cta-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .meta-row { display: flex; gap: 28px; margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--line); }
+    .meta-row .stat .num { font-family: 'Fraunces', serif; font-weight: 600; font-size: 28px; letter-spacing: -0.02em; }
+    .meta-row .stat .lbl { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+
+    .hero-art { position: relative; height: 600px; display: flex; align-items: center; justify-content: center; }
+    .hero-card-1 { position: absolute; transform: rotate(-6deg) translateX(-60px); z-index: 1; }
+    .hero-card-2 { position: absolute; transform: rotate(4deg) translateX(70px) translateY(20px); z-index: 2; }
+    .hero-card-3 { position: absolute; transform: rotate(-2deg) translateY(-40px); z-index: 3; }
+    .seal-float { position: absolute; top: 40px; right: 0; z-index: 4; }
+
+    .marquee-band { background: var(--ink); color: var(--paper); padding: 18px 0; overflow: hidden; margin-top: 60px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+    .marquee-track { display: flex; gap: 56px; animation: marquee 40s linear infinite; white-space: nowrap; align-items: center; }
+    .marquee-track span { font-family: 'Fraunces', serif; font-style: italic; font-size: 28px; font-weight: 500; letter-spacing: -0.01em; }
+    .marquee-track .dot { color: var(--foil-2); font-style: normal; }
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    section.block { padding: 100px 0; position: relative; }
+    .block-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .block-eyebrow .line { width: 30px; height: 1px; background: var(--ink); opacity: 0.5; }
+    .block-eyebrow .txt { font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; }
+    .block h2 { font-family: 'Fraunces', serif; font-weight: 600; font-size: clamp(36px, 4.4vw, 64px); line-height: 1.05; letter-spacing: -0.025em; margin: 0 0 24px; max-width: 780px; text-wrap: balance; }
+    .block h2 em { font-style: italic; color: var(--signature); }
+
+    .how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 60px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .how-step { padding: 36px 28px; border-right: 1px solid var(--line); position: relative; }
+    .how-step:last-child { border-right: none; }
+    .step-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 24px; }
+    .step-icon { width: 56px; height: 56px; border-radius: 999px; background: var(--ink); color: var(--paper); display: flex; align-items: center; justify-content: center; margin-bottom: 22px; }
+    .step-icon svg { width: 26px; height: 26px; }
+    .how-step h3 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 24px; letter-spacing: -0.015em; margin: 0 0 10px; }
+    .how-step p { font-size: 14px; line-height: 1.6; color: var(--muted); margin: 0; }
+
+    .feature-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 60px; align-items: center; margin-top: 50px; }
+    .feature-grid.reverse { grid-template-columns: 1fr 1.2fr; }
+    .feature-art { background: var(--ink); border-radius: 18px; height: 480px; position: relative; overflow: hidden; }
+    .feature-art .grain { opacity: 0.18; }
+
+    .ink-section { background: var(--ink); color: var(--paper); margin-top: 80px; }
+    .ink-section .block-eyebrow .line { background: var(--paper); opacity: 0.4; }
+    .ink-section h2 em { color: var(--foil-2); }
+    .ink-section .muted { color: rgba(242,237,226,0.65); }
+
+    .pricing { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 50px; }
+    .price-card { background: var(--ink-2); border: 1px solid var(--line-dark); border-radius: 18px; padding: 32px; }
+    .price-card.featured { background: var(--paper); color: var(--ink); border-color: var(--foil); position: relative; }
+    .price-card .tier { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.7; }
+    .price-card .price { font-family: 'Fraunces', serif; font-weight: 600; font-size: 64px; letter-spacing: -0.03em; margin: 14px 0 6px; line-height: 1; }
+    .price-card .price small { font-family: 'Inter'; font-size: 14px; font-weight: 500; opacity: 0.6; margin-left: 4px; }
+    .price-card ul { list-style: none; padding: 0; margin: 24px 0 0; }
+    .price-card li { display: flex; gap: 10px; padding: 10px 0; font-size: 14px; border-top: 1px solid; }
+    .price-card.featured li { border-color: var(--line); }
+    .price-card:not(.featured) li { border-color: var(--line-dark); }
+    .price-card li svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; color: var(--foil); }
+
+    .footer { background: var(--ink); color: var(--paper); padding: 80px 0 32px; }
+    .footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 40px; }
+    .footer h4 { font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(242,237,226,0.55); margin: 0 0 18px; }
+    .footer ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+    .footer a { color: var(--paper); text-decoration: none; opacity: 0.85; font-size: 14px; }
+    .footer a:hover { opacity: 1; }
+    .footer-bottom { display: flex; justify-content: space-between; padding-top: 32px; margin-top: 60px; border-top: 1px solid var(--line-dark); font-size: 12px; color: rgba(242,237,226,0.5); }
+
+    .floating-card { background: var(--paper); border-radius: 12px; padding: 14px; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.4), 0 8px 16px -8px rgba(0,0,0,0.2); width: 280px; }
+    .floating-card .photo { height: 280px; border-radius: 6px; overflow: hidden; position: relative; }
+
+    @media (max-width: 900px) {
+      .hero-grid, .feature-grid, .feature-grid.reverse { grid-template-columns: 1fr; gap: 40px; }
+      .how, .pricing, .footer-grid { grid-template-columns: 1fr; }
+      .how-step { border-right: none; border-bottom: 1px solid var(--line); }
+      .how-step:last-child { border-bottom: none; }
+      .hero-art { height: 480px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="site">
+    <nav class="site-nav">
+      <div id="brand"></div>
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#celebs">For celebrities</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#" class="btn btn-primary" style="padding: 10px 18px;">Open the app</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="block-eyebrow"><span class="line"></span><span class="txt">Studio Pass · Est. 2026</span></div>
+          <h1>Real autographs.<br/><em>Authenticated by presence.</em></h1>
+          <p class="lede">A celebrity scans your QR. You scan theirs. The moment is signed, dated, and yours alone — minted as a numbered card you keep forever.</p>
+          <div class="cta-row">
+            <a href="#" class="btn btn-primary btn-lg">Get the app</a>
+            <a href="#how" class="btn btn-ghost btn-lg">See how it works</a>
+          </div>
+          <div class="meta-row">
+            <div class="stat"><div class="num">3,420</div><div class="lbl">Cards signed</div></div>
+            <div class="stat"><div class="num">142</div><div class="lbl">Verified artists</div></div>
+            <div class="stat"><div class="num">100%</div><div class="lbl">Authenticated</div></div>
+          </div>
+        </div>
+        <div class="hero-art" id="hero-art"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="marquee-band">
+    <div class="marquee-track">
+      <span>In-person</span><span class="dot">●</span>
+      <span><em>Numbered editions</em></span><span class="dot">●</span>
+      <span>QR-handshake verified</span><span class="dot">●</span>
+      <span>1-of-1 cards</span><span class="dot">●</span>
+      <span><em>No prints. No proxies.</em></span><span class="dot">●</span>
+      <span>Studio Pass</span><span class="dot">●</span>
+      <span>In-person</span><span class="dot">●</span>
+      <span><em>Numbered editions</em></span><span class="dot">●</span>
+      <span>QR-handshake verified</span><span class="dot">●</span>
+      <span>1-of-1 cards</span><span class="dot">●</span>
+      <span><em>No prints. No proxies.</em></span><span class="dot">●</span>
+      <span>Studio Pass</span><span class="dot">●</span>
+    </div>
+  </div>
+
+  <div class="site">
+    <section class="block" id="how">
+      <div class="block-eyebrow"><span class="line"></span><span class="txt">How it works</span></div>
+      <h2>Three taps between a fan and an autograph that <em>can never be faked</em>.</h2>
+
+      <div class="how">
+        <div class="how-step">
+          <div class="step-num">STEP 01</div>
+          <div class="step-icon" id="icon-1"></div>
+          <h3>Open your pass</h3>
+          <p>Every fan has a unique QR. Show it to a celebrity in person, or send it to one through the app for a daily drop.</p>
+        </div>
+        <div class="how-step">
+          <div class="step-num">STEP 02</div>
+          <div class="step-icon" id="icon-2"></div>
+          <h3>The handshake</h3>
+          <p>Their phone scans yours. That mutual scan is what makes the autograph real — proof of presence, not just a signature on a screen.</p>
+        </div>
+        <div class="how-step">
+          <div class="step-num">STEP 03</div>
+          <div class="step-icon" id="icon-3"></div>
+          <h3>Yours, forever</h3>
+          <p>The card is signed, sealed, and numbered. It lives in your collection — tradeable, frameable, permanently authenticated.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="feature-grid">
+        <div class="feature-art" id="feature-art-1"></div>
+        <div>
+          <div class="block-eyebrow"><span class="line"></span><span class="txt">For collectors</span></div>
+          <h2>A shelf you can <em>actually trust</em>.</h2>
+          <p style="font-size: 16px; line-height: 1.6; color: var(--muted); margin: 0 0 24px; max-width: 460px;">Every card is a numbered edition with a permanent record of when, where, and who. Flip it over to see the certificate. Tilt it to see the foil. No more "is this real?"</p>
+          <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px;">
+            <li style="display: flex; gap: 12px; align-items: flex-start;"><span style="width: 22px; height: 22px; border-radius: 999px; background: var(--ink); color: var(--foil-2); display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg></span><span style="font-size: 14px;">Numbered edition · 1-of-1, rare, or open run</span></li>
+            <li style="display: flex; gap: 12px; align-items: flex-start;"><span style="width: 22px; height: 22px; border-radius: 999px; background: var(--ink); color: var(--foil-2); display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg></span><span style="font-size: 14px;">Tamper-proof handshake · both phones must scan</span></li>
+            <li style="display: flex; gap: 12px; align-items: flex-start;"><span style="width: 22px; height: 22px; border-radius: 999px; background: var(--ink); color: var(--foil-2); display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg></span><span style="font-size: 14px;">Resale on the marketplace · provenance follows the card</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="ink-section block">
+    <div class="site">
+      <div class="feature-grid reverse">
+        <div>
+          <div class="block-eyebrow"><span class="line"></span><span class="txt">For celebrities</span></div>
+          <h2>Daily drops. <em>Zero forgeries.</em> Real fans only.</h2>
+          <p class="muted" style="font-size: 16px; line-height: 1.6; margin: 0 0 24px; max-width: 460px;">Set a daily signing limit, see who's asking, sign on a canvas built for muscle memory. Every signature is bonded to the fan it was made for — they can't be lifted, traded, or printed.</p>
+          <div class="cta-row">
+            <a href="#" class="btn btn-foil btn-lg">Apply to verify</a>
+            <a href="#" class="btn btn-ghost-light btn-lg">Read the press kit</a>
+          </div>
+        </div>
+        <div class="feature-art" id="feature-art-2" style="background: var(--ink-2); border: 1px solid var(--line-dark);"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="site">
+    <section class="block" id="pricing">
+      <div class="block-eyebrow"><span class="line"></span><span class="txt">Pricing</span></div>
+      <h2>Free for fans.<br/><em>Fair for everyone.</em></h2>
+
+      <div class="pricing">
+        <div class="price-card featured">
+          <div class="tier" style="color: var(--muted);">For fans</div>
+          <div class="price">Free<small>forever</small></div>
+          <p style="margin: 0; color: var(--muted); font-size: 14px;">Collect, request, and own. The full app, free. You only pay the celebrity for the autograph itself.</p>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg>Unlimited collection</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg>Personal QR pass</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg>Marketplace access</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg>Authenticity guaranteed</li>
+          </ul>
+        </div>
+        <div class="price-card">
+          <div class="tier" style="color: var(--foil-2);">For verified artists</div>
+          <div class="price" style="color: var(--paper);">10%<small style="color: rgba(242,237,226,0.5);">per signing</small></div>
+          <p style="margin: 0; color: rgba(242,237,226,0.65); font-size: 14px;">No subscription, no listing fees. We take a cut only when you get paid. You set your own price and daily limit.</p>
+          <ul style="color: var(--paper);">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg>Verified profile + studio dashboard</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg>Daily drop scheduling</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg>Set your own price &amp; cap</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg>Direct payouts</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" style="text-align: center; padding: 120px 0;">
+      <div id="big-seal" style="display: flex; justify-content: center; margin-bottom: 30px;"></div>
+      <h2 style="margin: 0 auto 16px; max-width: 800px; text-align: center;">The signature is just <em>the visible part</em>.</h2>
+      <p style="font-size: 17px; color: var(--muted); max-width: 520px; margin: 0 auto 32px; line-height: 1.55;">What you're really collecting is the moment — the time, the place, the handshake. Autografr is the receipt.</p>
+      <a href="#" class="btn btn-primary btn-lg">Download for Android</a>
+    </section>
+  </div>
+
+  <footer class="footer">
+    <div class="site">
+      <div class="footer-grid">
+        <div>
+          <div id="footer-brand" style="margin-bottom: 16px;"></div>
+          <p style="margin: 0; color: rgba(242,237,226,0.6); font-size: 14px; max-width: 280px; line-height: 1.55;">Studio Pass for the people who actually showed up.</p>
+        </div>
+        <div>
+          <h4>Product</h4>
+          <ul><li><a href="#">For fans</a></li><li><a href="#">For celebrities</a></li><li><a href="#">Marketplace</a></li><li><a href="#">Pricing</a></li></ul>
+        </div>
+        <div>
+          <h4>Company</h4>
+          <ul><li><a href="#">About</a></li><li><a href="#">Press</a></li><li><a href="#">Careers</a></li><li><a href="#">Contact</a></li></ul>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <ul><li><a href="#">Terms</a></li><li><a href="#">Privacy</a></li><li><a href="#">Authentication policy</a></li></ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Autografr · All rights reserved</span>
+        <span class="mono">v1.0 · Studio Pass</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="primitives.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="screens-capture.jsx"></script>
+  <script type="text/babel">
+    // Render brand wordmarks
+    ReactDOM.createRoot(document.getElementById('brand')).render(<Wordmark size={26} />);
+    ReactDOM.createRoot(document.getElementById('footer-brand')).render(<Wordmark size={28} color="var(--paper)" flourishColor="var(--foil-2)" />);
+
+    // Hero stack of cert cards
+    function HeroArt() {
+      return (
+        <>
+          <div className="hero-card-1">
+            <CertCard celeb={CELEBS[2]} edition="111/250" date="May 2026" rarity="rare" drop={{scene:'cool'}} />
+          </div>
+          <div className="hero-card-2">
+            <CertCard celeb={CELEBS[0]} edition="042/365" date="May 2026" rarity="legend" drop={{scene:'sunset'}} />
+          </div>
+          <div className="hero-card-3">
+            <CertCard celeb={CELEBS[1]} edition="009/365" date="May 2026" rarity="rare" drop={{scene:'stage'}} />
+          </div>
+          <div className="seal-float">
+            <Seal size={130} color="var(--foil)" spin />
+          </div>
+        </>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('hero-art')).render(<HeroArt />);
+
+    // Big footer seal
+    ReactDOM.createRoot(document.getElementById('big-seal')).render(<Seal size={160} color="var(--ink)" spin />);
+
+    // How-it-works icons
+    ReactDOM.createRoot(document.getElementById('icon-1')).render(<span style={{width:26,height:26}}>{ICONS.qr}</span>);
+    ReactDOM.createRoot(document.getElementById('icon-2')).render(<span style={{width:26,height:26}}>{ICONS.scan}</span>);
+    ReactDOM.createRoot(document.getElementById('icon-3')).render(<span style={{width:26,height:26}}>{ICONS.sparkle}</span>);
+
+    // Feature art 1: collection grid preview
+    function FeatureArt1() {
+      return (
+        <div style={{position:'absolute',inset:0,padding:32,display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',gap:14}}>
+          {[CELEBS[0], CELEBS[1], CELEBS[2], CELEBS[4]].map((c,i)=>(
+            <div key={i} style={{borderRadius:10,overflow:'hidden',position:'relative',transform:`rotate(${(i%2?1:-1)*1.5}deg)`}}>
+              <PhotoPlaceholder name={c.name} hue={c.hue} height={200} scene={['sunset','stage','cool','studio'][i]} />
+              <div style={{position:'absolute',bottom:8,right:10}}>
+                <SignatureMark width={90} height={28} variant={c.sig} color="var(--foil-2)" strokeWidth={2} animate={false}/>
+              </div>
+              <div style={{position:'absolute',top:8,right:8,fontFamily:'JetBrains Mono',fontSize:9,color:'rgba(255,255,255,0.85)',background:'rgba(0,0,0,0.4)',padding:'2px 6px',borderRadius:4,letterSpacing:'0.05em'}}>{['042','009','111','317'][i]}/365</div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('feature-art-1')).render(<><div className="grain"/><FeatureArt1/></>);
+
+    // Feature art 2: celeb dashboard preview
+    function FeatureArt2() {
+      return (
+        <div style={{position:'absolute',inset:0,padding:36,display:'flex',flexDirection:'column',gap:14,color:'var(--paper)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <div>
+              <div className="eyebrow" style={{color:'var(--foil-2)'}}>Today's pass</div>
+              <div className="serif" style={{fontSize:42,fontWeight:600,letterSpacing:'-0.02em',marginTop:6,lineHeight:1}}>12 / 365</div>
+              <div style={{fontSize:12,color:'rgba(242,237,226,0.6)',marginTop:6}}>Drops remaining today</div>
+            </div>
+            <Seal size={80} color="var(--foil-2)" />
+          </div>
+          <div style={{height:8,background:'rgba(242,237,226,0.1)',borderRadius:999,overflow:'hidden',marginTop:10}}>
+            <div style={{width:'67%',height:'100%',background:'linear-gradient(90deg, var(--foil), var(--foil-2))'}}/>
+          </div>
+          <div style={{marginTop:'auto',display:'flex',flexDirection:'column',gap:8}}>
+            {[['Eli J.', '$24', 'pending'], ['Saanvi M.', '$24', 'pending'], ['Tomás R.', '$24', 'accepted']].map(([n,p,m],i)=>(
+              <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'12px 14px',background:'rgba(242,237,226,0.04)',borderRadius:10,border:'1px solid var(--line-dark)',alignItems:'center'}}>
+                <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                  <Avatar name={n} hue={(i+1)*70} size={32}/>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600}}>{n}</div>
+                    <div style={{fontSize:10,color:'rgba(242,237,226,0.55)',letterSpacing:'0.04em',textTransform:'uppercase'}}>{m}</div>
+                  </div>
+                </div>
+                <span className="serif" style={{fontSize:16,fontWeight:600}}>{p}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('feature-art-2')).render(<><div className="grain grain-dark"/><FeatureArt2/></>);
+  </script>
+</body>
+</html>

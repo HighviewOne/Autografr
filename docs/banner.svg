@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320">
+  <defs>
+    <linearGradient id="foil" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#C9A24C;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#E5C97A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C9A24C;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="signatureFade" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#B33A2A;stop-opacity:0" />
+      <stop offset="20%" style="stop-color:#B33A2A;stop-opacity:0.8" />
+      <stop offset="80%" style="stop-color:#B33A2A;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#B33A2A;stop-opacity:0" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="320" fill="#0E0D0B"/>
+
+  <!-- Subtle grain texture via noise -->
+  <rect width="1280" height="320" fill="url(#foil)" opacity="0.03"/>
+
+  <!-- Left decorative seal ring -->
+  <circle cx="160" cy="160" r="110" fill="none" stroke="#C9A24C" stroke-width="1" opacity="0.25"/>
+  <circle cx="160" cy="160" r="90" fill="none" stroke="#C9A24C" stroke-width="0.5" opacity="0.15"/>
+  <!-- Seal text ring approximation (dots) -->
+  <g opacity="0.3">
+    <text x="160" y="65" font-size="7" fill="#C9A24C" text-anchor="middle" font-family="serif" letter-spacing="4">· · AUTOGRAFR · STUDIO PASS · AUTHENTICATED · ·</text>
+  </g>
+  <!-- Center A in seal -->
+  <text x="160" y="178" font-size="64" fill="#C9A24C" text-anchor="middle" font-family="Georgia, serif" font-weight="700" opacity="0.6">A</text>
+
+  <!-- Right decorative lines -->
+  <line x1="980" y1="100" x2="1200" y2="100" stroke="#F2EDE2" stroke-width="0.5" opacity="0.12"/>
+  <line x1="980" y1="110" x2="1200" y2="110" stroke="#F2EDE2" stroke-width="0.5" opacity="0.06"/>
+  <line x1="980" y1="210" x2="1200" y2="210" stroke="#F2EDE2" stroke-width="0.5" opacity="0.12"/>
+  <line x1="980" y1="220" x2="1200" y2="220" stroke="#F2EDE2" stroke-width="0.5" opacity="0.06"/>
+
+  <!-- QR corner brackets (decorative) -->
+  <g stroke="#C9A24C" stroke-width="1.5" fill="none" opacity="0.35">
+    <polyline points="1060,120 1040,120 1040,140"/>
+    <polyline points="1160,120 1180,120 1180,140"/>
+    <polyline points="1060,200 1040,200 1040,180"/>
+    <polyline points="1160,200 1180,200 1180,180"/>
+  </g>
+
+  <!-- Horizontal hairline rule -->
+  <line x1="300" y1="198" x2="980" y2="198" stroke="#F2EDE2" stroke-width="0.5" opacity="0.15"/>
+
+  <!-- Wordmark: "Autografr" -->
+  <!-- "Autogra" in display serif -->
+  <text x="640" y="155" font-size="72" fill="#F2EDE2" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700" letter-spacing="-1">Autografr</text>
+
+  <!-- Foil underline accent -->
+  <rect x="490" y="165" width="300" height="2" fill="url(#foil)" rx="1" opacity="0.7"/>
+
+  <!-- Signature swipe above wordmark -->
+  <path d="M 420 128 Q 520 110 640 120 Q 760 130 860 112" fill="none" stroke="url(#signatureFade)" stroke-width="1.5" opacity="0.5" stroke-linecap="round"/>
+
+  <!-- Tagline -->
+  <text x="640" y="230" font-size="15" fill="#7A736A" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" letter-spacing="3" font-weight="400">REAL AUTOGRAPHS · AUTHENTICATED BY PRESENCE</text>
+
+  <!-- Bottom badge strip -->
+  <rect x="560" y="258" width="160" height="24" rx="12" fill="#C9A24C" opacity="0.12"/>
+  <text x="640" y="274" font-size="10" fill="#C9A24C" text-anchor="middle" font-family="'Courier New', monospace" letter-spacing="2">STUDIO PASS</text>
+</svg>

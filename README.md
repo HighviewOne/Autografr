@@ -1,30 +1,51 @@
-# Autografr
+<p align="center">
+  <img src="https://highviewone.github.io/Autografr/banner.svg" alt="Autografr" width="100%" />
+</p>
 
-Android app where celebrities autograph photos from fans. Fans request autographs, celebrities sign them on a digital canvas, and signed photos can be shared or sold on a marketplace.
+<p align="center">
+  <a href="https://developer.android.com/about/versions/oreo"><img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white" alt="Android 8.0+"/></a>
+  <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-2.1.0-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin 2.1.0"/></a>
+  <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Jetpack_Compose-BOM_2024.x-4285F4?logo=jetpackcompose&logoColor=white" alt="Jetpack Compose"/></a>
+  <a href="https://firebase.google.com"><img src="https://img.shields.io/badge/Firebase-Auth_%7C_Firestore_%7C_Storage-FFCA28?logo=firebase&logoColor=black" alt="Firebase"/></a>
+  <a href="https://highviewone.github.io/Autografr/"><img src="https://img.shields.io/badge/Site-Live-C9A24C?logo=github&logoColor=white" alt="Marketing site"/></a>
+  <img src="https://img.shields.io/badge/License-Proprietary-0E0D0B" alt="License: Proprietary"/>
+</p>
 
-## Download
+<p align="center">
+  <strong>Real autographs. Authenticated by presence.</strong>
+</p>
 
-Grab the latest APK from [Releases](https://github.com/HighviewOne/Autografr/releases) and install on any Android 8.0+ device.
+<p align="center">
+  Autografr connects fans with celebrities through authenticated digital autographs.<br/>
+  Fans request a signing, celebrities draw directly on the photo with professional brushes,<br/>
+  and the signed card becomes a tradeable collectible.
+</p>
+
+---
 
 ## Features
 
-- **Fan & Celebrity roles** — register as either, with dedicated flows for each
-- **Drawing canvas** — sign photos with 5 brush types (Pen, Marker, Calligraphy, Glow, Eraser), undo/redo, color & size controls
-- **Camera & gallery** — capture photos or pick from your library
-- **Autograph requests** — fans request autographs from celebrities, celebrities manage their queue
-- **Marketplace** — browse and purchase signed photos
-- **Social sharing** — share signed photos to social media
-- **Feed** — discover trending autographs and featured celebrities
+| | |
+|---|---|
+| **Fan & Celebrity roles** | Dedicated onboarding and home flows per role |
+| **Autograph requests** | Fans request signings; celebrities manage a live queue |
+| **Drawing canvas** | 5 brush types (Pen, Marker, Calligraphy, Glow, Eraser), undo/redo, color & size controls |
+| **Camera & gallery** | Capture a new photo or pick from your library |
+| **CertCard collectibles** | Each signed photo becomes a Studio Pass card with QR authentication |
+| **Marketplace** | Browse, buy, and sell signed cards |
+| **Feed** | Discover trending autographs and featured celebrities |
+| **Social sharing** | Share signed photos directly to social media |
 
 ## Tech Stack
 
 | Layer | Tech |
 |-------|------|
+| Language | Kotlin 2.1.0 |
 | UI | Jetpack Compose + Material 3 |
 | Architecture | MVVM + Clean Architecture |
 | DI | Hilt |
 | Backend | Firebase (Auth, Firestore, Storage) |
-| Database | Room |
+| Local DB | Room 3 (offline-first) |
 | Navigation | Compose Navigation + Kotlin Serialization |
 | Images | Coil 3 |
 | Camera | CameraX |
@@ -33,60 +54,75 @@ Grab the latest APK from [Releases](https://github.com/HighviewOne/Autografr/rel
 
 ```
 app/src/main/java/com/autografr/app/
-├── data/           # Repository implementations, Firebase, Room, mappers
-├── di/             # Hilt modules
-├── domain/         # Models, repository interfaces, Result type
-├── navigation/     # Type-safe routes & NavHost
-├── ui/             # Screens, components, theme
-└── usecase/        # Business logic use cases
+├── data/           # Repository implementations, Firebase data sources, Room, mappers
+├── di/             # Hilt modules (Firebase, DB, repos, dispatchers)
+├── domain/         # Models, repository interfaces, sealed Result<T>
+├── navigation/     # Type-safe @Serializable routes + NavHost
+├── ui/
+│   ├── component/  # Shared composables (Studio Pass design system)
+│   ├── screen/     # All app screens grouped by feature
+│   └── theme/      # Color, Type, Theme (Studio Pass tokens)
+└── usecase/        # Business logic (auth, photo, request, marketplace, profile)
 ```
 
-## Building
+## Getting Started
 
-**Requirements:** JDK 17, Android SDK (compileSdk 35, minSdk 26)
+**Requirements:** JDK 17 · Android SDK · compileSdk 35 · minSdk 26 (Android 8.0)
 
 ```bash
-# Set environment
 export JAVA_HOME=/path/to/jdk-17
 export ANDROID_HOME=/path/to/android-sdk
 
-# Build debug APK
 ./gradlew assembleDebug
+# APK → app/build/outputs/apk/debug/app-debug.apk
 ```
 
-APK output: `app/build/outputs/apk/debug/app-debug.apk`
+### Firebase Setup
 
-## Firebase Setup
+`google-services.json` is not included. To wire up a backend:
 
-The `google-services.json` file is not included in the repo for security. To set up Firebase:
+1. Create a project at [Firebase Console](https://console.firebase.google.com)
+2. Add an Android app with package name `com.autografr.app`
+3. Download `google-services.json` → place in `app/`
 
-1. Go to [Firebase Console](https://console.firebase.google.com) and create a new project
-2. Add an Android app with package `com.autografr.app`
-3. Download `google-services.json` and place it in the `app/` directory
+Then enable three services:
 
-### Enable Authentication
-1. In the Firebase Console sidebar, go to **Build → Authentication**
-2. Click **Get started**
-3. Under "Sign-in method", click **Email/Password**
-4. Toggle the first switch to **Enable** and click **Save**
+| Service | Console path | Mode |
+|---------|-------------|------|
+| Authentication | Build → Authentication → Sign-in method → Email/Password | Enable |
+| Cloud Firestore | Build → Firestore Database → Create database | Start in test mode |
+| Storage | Build → Storage → Get started | Start in test mode |
 
-### Enable Cloud Firestore
-1. Go to **Build → Firestore Database**
-2. Click **Create database**
-3. Choose a location closest to your users (can't be changed later)
-4. Select **Start in test mode** and click **Create**
-
-### Enable Storage
-1. Go to **Build → Storage**
-2. Click **Get started**
-3. Select **Start in test mode**
-4. Click **Next**, pick the same location as Firestore, and click **Done**
-
-### Rebuild
 ```bash
-./gradlew assembleDebug
+./gradlew assembleDebug   # rebuild after adding google-services.json
 ```
+
+> **Production note:** Replace the test-mode Firestore/Storage rules with proper security rules before shipping.
+
+## Design System — Studio Pass
+
+Autografr uses the **Studio Pass** design language: a collectible-card aesthetic inspired by vinyl sleeves and autograph books.
+
+| Token | Value |
+|-------|-------|
+| Ink | `#0E0D0B` |
+| Paper | `#F2EDE2` |
+| Foil | `#C9A24C` |
+| SignatureRed | `#B33A2A` |
+| Stamp | `#1A4B3A` |
+| Muted | `#7A736A` |
+
+Typography: **Fraunces** (display) · **Inter** (UI) · **Caveat** (script accents) · **JetBrains Mono** (metadata)  
+Fonts are loaded at runtime via the Google Fonts downloadable provider — no bundled TTF files needed.
+
+## Contributing
+
+1. Fork the repo and create a feature branch
+2. Open a PR — use the template and fill in the checklist
+3. All UI changes should follow the Studio Pass design system
+
+See [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/) for bug report and feature request forms.
 
 ## License
 
-All rights reserved.
+All rights reserved. © 2026 Highview.

@@ -1,0 +1,167 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Check that a field hasn't changed in an update
+    function unchanged(field) {
+      return request.resource.data[field] == resource.data[field];
+    }
+
+    // ── users/{userId} ────────────────────────────────────────────────────────
+    //
+    // Any signed-in user can read profiles (celebrity discovery, fan profile pages).
+    // Users can create and update only their own document, with two hard restrictions:
+    //   - `role` is set on create and is immutable (no self-promotion to CELEBRITY)
+    //   - `verificationStatus` starts null and can only be set by a backend process
+    //     (Cloud Function / Admin SDK) — clients can never touch it
+    match /users/{userId} {
+      allow read: if isSignedIn();
+
+      allow create: if request.auth.uid == userId
+        && request.resource.data.id == userId
+        && request.resource.data.role in ['FAN', 'CELEBRITY']
+        && request.resource.data.verificationStatus == null;
+
+      allow update: if request.auth.uid == userId
+        && unchanged('id')
+        && unchanged('role')
+        && unchanged('verificationStatus')
+        && unchanged('createdAt');
+    }
+
+    // ── signed_photos/{photoId} ───────────────────────────────────────────────
+    //
+    // Any signed-in user can read photos (marketplace, feed, profile grids).
+    //
+    // Three distinct write paths, each locked to one actor:
+    //
+    //   1. CELEBRITY SIGNING — the celebrity named on the photo can update it
+    //      to set photo URLs and advance status (DRAFT → SIGNED). They cannot
+    //      touch ownerId, requestId, price, createdAt, or their own celebrityId.
+    //
+    //   2. OWNER LISTING — the current owner can list or delist the photo
+    //      (SIGNED ↔ LISTED) and change price/title/description. They cannot
+    //      change ownerId, celebrityId, requestId, or createdAt.
+    //
+    //   3. PURCHASE — any signed-in user can "buy" a LISTED photo: status flips
+    //      to SOLD and ownerId transfers to the buyer (request.auth.uid).
+    //      Immutable fields (price, celebrityId, requestId, createdAt) are frozen.
+    //      ⚠ No payment verification at this layer — move purchaseListing to a
+    //        Cloud Function before launch so a real payment gate can be added.
+    match /signed_photos/{photoId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.celebrityId == request.auth.uid
+        && request.resource.data.status in ['DRAFT', 'SIGNED']
+        && request.resource.data.id == photoId;
+
+      allow update: if isSignedIn() && (
+
+        // 1. Celebrity signing their own photo
+        (request.auth.uid == resource.data.celebrityId
+          && unchanged('ownerId')
+          && unchanged('requestId')
+          && unchanged('createdAt')
+          && unchanged('celebrityId')
+          && unchanged('price'))
+
+        ||
+
+        // 2. Current owner listing / delisting
+        (request.auth.uid == resource.data.ownerId
+          && resource.data.status in ['SIGNED', 'LISTED']
+          && request.resource.data.status in ['SIGNED', 'LISTED']
+          && unchanged('ownerId')
+          && unchanged('celebrityId')
+          && unchanged('requestId')
+          && unchanged('createdAt'))
+
+        ||
+
+        // 3. Purchase: LISTED → SOLD, ownership transfers to buyer
+        (resource.data.status == 'LISTED'
+          && request.resource.data.status == 'SOLD'
+          && request.resource.data.ownerId == request.auth.uid
+          && unchanged('celebrityId')
+          && unchanged('price')
+          && unchanged('requestId')
+          && unchanged('createdAt'))
+      );
+    }
+
+    // ── autograph_requests/{requestId} ────────────────────────────────────────
+    //
+    // Only the fan and the celebrity on a request can read it.
+    //
+    // Fans create requests; fanId must match the caller so they can't impersonate.
+    // Initial status must be PENDING — fans cannot create pre-accepted requests.
+    //
+    // Two update paths:
+    //   FAN    — can only cancel a PENDING request (PENDING → CANCELLED).
+    //   CELEBRITY — can drive the workflow: PENDING→ACCEPTED/DECLINED,
+    //               ACCEPTED→IN_PROGRESS, IN_PROGRESS→COMPLETED/DECLINED.
+    //               They can also set signedPhotoId once signing is done.
+    // Core identity fields (fanId, celebrityId, price, createdAt) are frozen for both.
+    match /autograph_requests/{requestId} {
+      allow read: if isSignedIn()
+        && (request.auth.uid == resource.data.fanId
+          || request.auth.uid == resource.data.celebrityId);
+
+      allow create: if isSignedIn()
+        && request.resource.data.fanId == request.auth.uid
+        && request.resource.data.status == 'PENDING'
+        && request.resource.data.id == requestId;
+
+      allow update: if isSignedIn() && (
+
+        // Fan cancels a pending request
+        (request.auth.uid == resource.data.fanId
+          && resource.data.status == 'PENDING'
+          && request.resource.data.status == 'CANCELLED'
+          && unchanged('fanId')
+          && unchanged('celebrityId')
+          && unchanged('price')
+          && unchanged('createdAt'))
+
+        ||
+
+        // Celebrity manages the request workflow
+        (request.auth.uid == resource.data.celebrityId
+          && resource.data.status in ['PENDING', 'ACCEPTED', 'IN_PROGRESS']
+          && request.resource.data.status in ['ACCEPTED', 'DECLINED', 'IN_PROGRESS', 'COMPLETED']
+          && unchanged('fanId')
+          && unchanged('celebrityId')
+          && unchanged('price')
+          && unchanged('createdAt'))
+      );
+    }
+
+    // ── transactions/{transactionId} ──────────────────────────────────────────
+    //
+    // Only the buyer or seller can read a transaction (private financial records).
+    //
+    // Clients write their own purchase transactions; buyerId must equal auth.uid
+    // so users cannot fabricate transactions on behalf of others.
+    // ⚠ The app currently writes COMPLETED status directly from the client with
+    //   no payment gate. Move purchaseListing to a Cloud Function and restrict
+    //   create to `false` here once that's in place.
+    //
+    // Updates and deletes are denied entirely — transactions are append-only.
+    match /transactions/{transactionId} {
+      allow read: if isSignedIn()
+        && (request.auth.uid == resource.data.buyerId
+          || request.auth.uid == resource.data.sellerId);
+
+      allow create: if isSignedIn()
+        && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.id == transactionId;
+
+      allow update, delete: if false;
+    }
+  }
+}

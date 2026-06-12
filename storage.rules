@@ -1,0 +1,59 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // ── profile_images/{userId}.jpg ───────────────────────────────────────────
+    // Filename is the owner's uid — only that user can write their own avatar.
+    match /profile_images/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && fileName == request.auth.uid + '.jpg'
+        && isImage()
+        && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // ── original_photos/{photoId}.jpg ─────────────────────────────────────────
+    // Uploaded by the fan before the signing request doc exists, so ownership
+    // can't be checked against Firestore here. Any signed-in user may upload;
+    // overwrites of finished work are prevented at the Firestore layer (photo
+    // status transitions), and uploads are capped by type and size.
+    match /original_photos/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && isImage()
+        && request.resource.size < 15 * 1024 * 1024;
+    }
+
+    // ── signed_photos/{photoId}.jpg ───────────────────────────────────────────
+    // Written by the celebrity when exporting the signed canvas. The photo doc
+    // may not exist in Firestore yet at upload time, so this allows any
+    // signed-in user; the authoritative ownership record is the Firestore doc.
+    match /signed_photos/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && isImage()
+        && request.resource.size < 15 * 1024 * 1024;
+    }
+
+    // ── thumbnails/{photoId}.jpg ──────────────────────────────────────────────
+    match /thumbnails/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && isImage()
+        && request.resource.size < 2 * 1024 * 1024;
+    }
+
+    // Everything else: denied.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

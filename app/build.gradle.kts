@@ -23,7 +23,15 @@ android {
     }
 
     buildTypes {
+        debug {
+            // `./gradlew installDebug -PuseFirebaseEmulators=true` points the app at the local
+            // Firebase emulators (reached over `adb reverse`, see README). Off by default so a
+            // shared app-debug.apk still talks to the real project.
+            val useEmulators = project.findProperty("useFirebaseEmulators") == "true"
+            buildConfigField("boolean", "USE_FIREBASE_EMULATORS", useEmulators.toString())
+        }
         release {
+            buildConfigField("boolean", "USE_FIREBASE_EMULATORS", "false")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -43,6 +51,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

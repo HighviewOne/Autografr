@@ -10,6 +10,7 @@ import com.autografr.app.domain.model.User
 import com.autografr.app.domain.repository.AuthRepository
 import com.autografr.app.domain.util.Result
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -26,8 +27,17 @@ class AuthRepositoryImpl @Inject constructor(
     override fun observeAuthState(): Flow<User?> {
         return authDataSource.observeAuthState().map { firebaseUser ->
             firebaseUser?.let {
-                val dto = firestoreDataSource.getUser(it.uid)
-                dto?.let { userDto -> UserMapper.dtoToDomain(userDto) }
+                try {
+                    firestoreDataSource.getUser(it.uid)?.let { dto ->
+                        userDao.insertUser(UserMapper.dtoToEntity(dto))
+                        UserMapper.dtoToDomain(dto)
+                    }
+                } catch (e: Exception) {
+                    // Offline (or token rejected): an uncaught throw here crashed the app at
+                    // launch. Fall back to the profile cached from the last successful load.
+                    Log.w(TAG, "Couldn't load profile for ${it.uid}; using cached copy", e)
+                    userDao.getUserById(it.uid).first()?.let(UserMapper::entityToDomain)
+                }
             }
         }
     }

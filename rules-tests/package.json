@@ -4,7 +4,8 @@
   "description": "Firestore + Storage security rules tests, run against the local Firebase emulator",
   "type": "module",
   "scripts": {
-    "test": "cp ../firestore.rules ../storage.rules . && firebase emulators:exec --only firestore,storage --project demo-autografr 'node --test --test-concurrency=1'"
+    "test": "cp ../firestore.rules ../storage.rules . && firebase emulators:exec --only firestore,storage --project demo-autografr 'node --test --test-concurrency=1'",
+    "emulators": "cp ../firestore.rules ../storage.rules . && firebase emulators:start --only auth,firestore,storage --project autografr-afe43"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

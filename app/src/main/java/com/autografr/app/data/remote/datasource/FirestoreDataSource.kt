@@ -41,6 +41,30 @@ class FirestoreDataSource @Inject constructor(
             .await()
     }
 
+    /**
+     * Updates only the user-editable profile fields. A full set() would null out
+     * verificationStatus and the celebrity/fan fields the client doesn't hold.
+     */
+    suspend fun updateUserProfile(
+        userId: String,
+        displayName: String,
+        bio: String,
+        profileImageUrl: String?,
+        role: String
+    ) {
+        firestore.collection(USERS_COLLECTION)
+            .document(userId)
+            .update(
+                mapOf(
+                    "displayName" to displayName,
+                    "bio" to bio,
+                    "profileImageUrl" to profileImageUrl,
+                    "role" to role
+                )
+            )
+            .await()
+    }
+
     fun observeUser(userId: String): Flow<UserDto?> = callbackFlow {
         val listener = firestore.collection(USERS_COLLECTION)
             .document(userId)
@@ -133,6 +157,20 @@ class FirestoreDataSource @Inject constructor(
         val listener = firestore.collection(PHOTOS_COLLECTION)
             .whereEqualTo("celebrityId", celebrityId)
             .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
+                    return@addSnapshotListener
+                }
+                val photos = snapshot?.toObjects(SignedPhotoDto::class.java) ?: emptyList()
+                trySend(photos)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    fun getPhotosByOwner(ownerId: String): Flow<List<SignedPhotoDto>> = callbackFlow {
+        val listener = firestore.collection(PHOTOS_COLLECTION)
+            .whereEqualTo("ownerId", ownerId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.w("FirestoreDataSource", "Snapshot listener error", error)

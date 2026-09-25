@@ -10,6 +10,7 @@ interface PhotoRepository {
     fun getPhotosByOwner(ownerId: String): Flow<List<SignedPhoto>>
     suspend fun saveSignedPhoto(photo: SignedPhoto, imageBytes: ByteArray): Result<SignedPhoto>
     suspend fun uploadOriginalPhoto(photoId: String, imageBytes: ByteArray): Result<String>
+    suspend fun uploadOriginalPhotoFromUri(photoId: String, imageUri: String): Result<String>
     suspend fun getPhoto(photoId: String): Result<SignedPhoto>
     suspend fun deletePhoto(photoId: String): Result<Unit>
 }

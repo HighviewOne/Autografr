@@ -20,6 +20,7 @@ sealed interface Screen {
 
     // Requests
     @Serializable data object FanRequest : Screen
+    @Serializable data class CreateRequest(val celebrityId: String) : Screen
     @Serializable data object CelebrityQueue : Screen
     @Serializable data class RequestDetail(val requestId: String) : Screen
 

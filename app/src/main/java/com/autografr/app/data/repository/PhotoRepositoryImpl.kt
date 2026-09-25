@@ -1,5 +1,6 @@
 package com.autografr.app.data.repository
 
+import android.net.Uri
 import android.util.Log
 import com.autografr.app.data.local.dao.SignedPhotoDao
 import com.autografr.app.data.mapper.PhotoMapper
@@ -10,7 +11,9 @@ import com.autografr.app.domain.model.SignedPhoto
 import com.autografr.app.domain.repository.PhotoRepository
 import com.autografr.app.domain.util.Result
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class PhotoRepositoryImpl @Inject constructor(
@@ -36,9 +39,16 @@ class PhotoRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getPhotosByOwner(ownerId: String): Flow<List<SignedPhoto>> {
-        return signedPhotoDao.getPhotosByOwner(ownerId).map { entities ->
-            entities.map { PhotoMapper.entityToDomain(it) }
+    override fun getPhotosByOwner(ownerId: String): Flow<List<SignedPhoto>> = channelFlow {
+        // Sync from Firestore so photos received from others (signed requests,
+        // purchases) show up — Room alone only knows what this device wrote.
+        launch {
+            firestoreDataSource.getPhotosByOwner(ownerId).collect { dtos ->
+                signedPhotoDao.insertPhotos(dtos.map { PhotoMapper.dtoToEntity(it) })
+            }
+        }
+        signedPhotoDao.getPhotosByOwner(ownerId).collect { entities ->
+            send(entities.map { PhotoMapper.entityToDomain(it) })
         }
     }
 
@@ -94,6 +104,16 @@ class PhotoRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to upload original photo $photoId", e)
             Result.error(e.message ?: "Failed to upload original photo", e)
+        }
+    }
+
+    override suspend fun uploadOriginalPhotoFromUri(photoId: String, imageUri: String): Result<String> {
+        return try {
+            val url = storageDataSource.uploadOriginalPhotoFromUri(photoId, Uri.parse(imageUri))
+            Result.success(url)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to upload original photo $photoId", e)
+            Result.error(e.message ?: "Failed to upload photo", e)
         }
     }
 

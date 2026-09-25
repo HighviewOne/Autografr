@@ -16,17 +16,22 @@ fun DrawingPath.getBlendMode(): BlendMode = when (brushType) {
 }
 
 object BrushPresets {
-    fun penStroke(width: Float) = Stroke(width = width, cap = StrokeCap.Round, join = StrokeJoin.Round)
-    fun markerStroke(width: Float) = Stroke(width = width * 2f, cap = StrokeCap.Square, join = StrokeJoin.Bevel)
-    fun calligraphyStroke(width: Float) = Stroke(width = width * 1.5f, cap = StrokeCap.Butt, join = StrokeJoin.Round)
-    fun glowStroke(width: Float) = Stroke(width = width * 2.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-    fun eraserStroke(width: Float) = Stroke(width = width * 3f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    /** Stroke width multiplier per brush — shared by the on-screen preview and the export. */
+    fun widthMultiplier(type: BrushType): Float = when (type) {
+        BrushType.PEN -> 1f
+        BrushType.MARKER -> 2f
+        BrushType.CALLIGRAPHY -> 1.5f
+        BrushType.GLOW -> 2.5f
+        BrushType.ERASER -> 3f
+    }
 
-    fun forType(type: BrushType, width: Float): Stroke = when (type) {
-        BrushType.PEN -> penStroke(width)
-        BrushType.MARKER -> markerStroke(width)
-        BrushType.CALLIGRAPHY -> calligraphyStroke(width)
-        BrushType.GLOW -> glowStroke(width)
-        BrushType.ERASER -> eraserStroke(width)
+    fun forType(type: BrushType, width: Float): Stroke {
+        val w = width * widthMultiplier(type)
+        return when (type) {
+            BrushType.PEN, BrushType.GLOW, BrushType.ERASER ->
+                Stroke(width = w, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            BrushType.MARKER -> Stroke(width = w, cap = StrokeCap.Square, join = StrokeJoin.Bevel)
+            BrushType.CALLIGRAPHY -> Stroke(width = w, cap = StrokeCap.Butt, join = StrokeJoin.Round)
+        }
     }
 }

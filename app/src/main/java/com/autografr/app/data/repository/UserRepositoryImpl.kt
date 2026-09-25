@@ -68,9 +68,15 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun updateUser(user: User): Result<Unit> {
         return try {
-            val dto = UserMapper.domainToDto(user)
-            firestoreDataSource.saveUser(dto)
-            userDao.insertUser(UserMapper.domainToEntity(user))
+            firestoreDataSource.updateUserProfile(
+                userId = user.id,
+                displayName = user.displayName,
+                bio = user.bio,
+                profileImageUrl = user.profileImageUrl,
+                role = user.role.name
+            )
+            // Re-read the full doc so the local cache keeps the fields we didn't write
+            firestoreDataSource.getUser(user.id)?.let { userDao.insertUser(UserMapper.dtoToEntity(it)) }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to update user ${user.id}", e)

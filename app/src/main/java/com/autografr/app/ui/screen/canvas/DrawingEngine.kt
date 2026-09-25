@@ -18,6 +18,11 @@ import com.autografr.app.domain.model.BrushType
 import com.autografr.app.domain.model.DrawingPath
 import com.autografr.app.domain.model.PathPoint
 
+/**
+ * Stroke points are stored normalized to 0..1 of the on-screen canvas, so they map onto
+ * the background bitmap at any resolution. Stroke widths stay in screen pixels and are
+ * scaled by bitmap width / [viewportWidth] on export.
+ */
 class DrawingEngine {
 
     private val _paths = mutableStateListOf<DrawingPath>()
@@ -35,6 +40,9 @@ class DrawingEngine {
 
     var canRedo by mutableStateOf(false)
         private set
+
+    /** Width in px of the on-screen canvas; set by the screen as it lays out. */
+    var viewportWidth: Float = 0f
 
     fun updateBrush(config: BrushConfig) {
         brushConfig = config
@@ -119,11 +127,12 @@ class DrawingEngine {
         val result = backgroundBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(result)
 
-        val scaleX = result.width.toFloat() / 1f
-        val scaleY = result.height.toFloat() / 1f
+        val scaleX = result.width.toFloat()
+        val scaleY = result.height.toFloat()
+        val strokeScale = if (viewportWidth > 0f) result.width / viewportWidth else 1f
 
         for (drawingPath in _paths) {
-            val paint = createPaint(drawingPath)
+            val paint = createPaint(drawingPath, strokeScale)
             val path = createAndroidPath(drawingPath.points, scaleX, scaleY)
             canvas.drawPath(path, paint)
         }
@@ -138,37 +147,34 @@ class DrawingEngine {
         return stream.toByteArray()
     }
 
-    private fun createPaint(drawingPath: DrawingPath): Paint {
+    private fun createPaint(drawingPath: DrawingPath, strokeScale: Float): Paint {
+        val width = drawingPath.strokeWidth * BrushPresets.widthMultiplier(drawingPath.brushType) * strokeScale
         return Paint().apply {
             color = drawingPath.color.toArgb()
             alpha = (drawingPath.alpha * 255).toInt()
             style = Paint.Style.STROKE
             isAntiAlias = true
+            strokeWidth = width
 
             when (drawingPath.brushType) {
                 BrushType.PEN -> {
-                    strokeWidth = drawingPath.strokeWidth * STROKE_SCALE
                     strokeCap = Paint.Cap.ROUND
                     strokeJoin = Paint.Join.ROUND
                 }
                 BrushType.MARKER -> {
-                    strokeWidth = drawingPath.strokeWidth * 5f
                     strokeCap = Paint.Cap.SQUARE
                     strokeJoin = Paint.Join.BEVEL
                 }
                 BrushType.CALLIGRAPHY -> {
-                    strokeWidth = drawingPath.strokeWidth * 4f
                     strokeCap = Paint.Cap.BUTT
                     strokeJoin = Paint.Join.ROUND
                 }
                 BrushType.GLOW -> {
-                    strokeWidth = drawingPath.strokeWidth * 5f
                     strokeCap = Paint.Cap.ROUND
                     strokeJoin = Paint.Join.ROUND
-                    maskFilter = BlurMaskFilter(drawingPath.strokeWidth * 3f, BlurMaskFilter.Blur.NORMAL)
+                    maskFilter = BlurMaskFilter(drawingPath.strokeWidth * strokeScale, BlurMaskFilter.Blur.NORMAL)
                 }
                 BrushType.ERASER -> {
-                    strokeWidth = drawingPath.strokeWidth * STROKE_SCALE
                     strokeCap = Paint.Cap.ROUND
                     strokeJoin = Paint.Join.ROUND
                     xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
@@ -200,9 +206,5 @@ class DrawingEngine {
         path.lineTo(last.x * scaleX, last.y * scaleY)
 
         return path
-    }
-
-    companion object {
-        private const val STROKE_SCALE = 3f
     }
 }

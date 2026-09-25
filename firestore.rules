@@ -15,7 +15,10 @@ service cloud.firestore {
     //
     // Any signed-in user can read profiles (celebrity discovery, fan profile pages).
     // Users can create and update only their own document, with two hard restrictions:
-    //   - `role` is set on create and is immutable (no self-promotion to CELEBRITY)
+    //   - `role` is set on create; the only change allowed afterwards is the one-way
+    //     FAN → CELEBRITY switch made on the profile-setup screen (registration always
+    //     creates a FAN). Being a CELEBRITY grants nothing on its own — anything that
+    //     matters is gated on `verificationStatus`.
     //   - `verificationStatus` starts null and can only be set by a backend process
     //     (Cloud Function / Admin SDK) — clients can never touch it
     match /users/{userId} {
@@ -28,9 +31,25 @@ service cloud.firestore {
 
       allow update: if request.auth.uid == userId
         && unchanged('id')
-        && unchanged('role')
+        && (unchanged('role')
+          || (resource.data.role == 'FAN' && request.resource.data.role == 'CELEBRITY'))
         && unchanged('verificationStatus')
         && unchanged('createdAt');
+    }
+
+    // True if `photo` is being signed for an open request addressed to the caller,
+    // and is owned by the fan who made it.
+    function isFulfillingRequest(photo) {
+      return photo.get('requestId', null) is string
+        && requestIsOpenFor(
+          get(/databases/$(database)/documents/autograph_requests/$(photo.requestId)).data,
+          photo.ownerId);
+    }
+
+    function requestIsOpenFor(req, ownerId) {
+      return req.celebrityId == request.auth.uid
+        && req.fanId == ownerId
+        && req.status in ['PENDING', 'ACCEPTED', 'IN_PROGRESS'];
     }
 
     // ── signed_photos/{photoId} ───────────────────────────────────────────────
@@ -55,10 +74,14 @@ service cloud.firestore {
     match /signed_photos/{photoId} {
       allow read: if isSignedIn();
 
+      // The new photo belongs to its celebrity, or — when signed for a request —
+      // to the fan who made that request (the celebrity must be the one it was sent to).
       allow create: if isSignedIn()
         && request.resource.data.celebrityId == request.auth.uid
         && request.resource.data.status in ['DRAFT', 'SIGNED']
-        && request.resource.data.id == photoId;
+        && request.resource.data.id == photoId
+        && (request.resource.data.ownerId == request.auth.uid
+          || isFulfillingRequest(request.resource.data));
 
       allow update: if isSignedIn() && (
 
@@ -103,8 +126,8 @@ service cloud.firestore {
     //
     // Two update paths:
     //   FAN    — can only cancel a PENDING request (PENDING → CANCELLED).
-    //   CELEBRITY — can drive the workflow: PENDING→ACCEPTED/DECLINED,
-    //               ACCEPTED→IN_PROGRESS, IN_PROGRESS→COMPLETED/DECLINED.
+    //   CELEBRITY — can drive the workflow: PENDING→ACCEPTED/REJECTED,
+    //               ACCEPTED→IN_PROGRESS, IN_PROGRESS→COMPLETED/REJECTED.
     //               They can also set signedPhotoId once signing is done.
     // Core identity fields (fanId, celebrityId, price, createdAt) are frozen for both.
     match /autograph_requests/{requestId} {
@@ -133,7 +156,7 @@ service cloud.firestore {
         // Celebrity manages the request workflow
         (request.auth.uid == resource.data.celebrityId
           && resource.data.status in ['PENDING', 'ACCEPTED', 'IN_PROGRESS']
-          && request.resource.data.status in ['ACCEPTED', 'DECLINED', 'IN_PROGRESS', 'COMPLETED']
+          && request.resource.data.status in ['ACCEPTED', 'REJECTED', 'IN_PROGRESS', 'COMPLETED']
           && unchanged('fanId')
           && unchanged('celebrityId')
           && unchanged('price')

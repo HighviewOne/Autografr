@@ -36,6 +36,7 @@ class FirebaseStorageDataSource @Inject constructor(
         // Keep these well under the storage.rules caps (profile 5 MB, thumbnail 2 MB).
         private const val PROFILE_MAX_DIMENSION = 1024
         private const val THUMBNAIL_MAX_DIMENSION = 512
+        private const val ORIGINAL_MAX_DIMENSION = 2048
         private const val SCALED_JPEG_QUALITY = 85
 
         // Without explicit metadata, putBytes uploads as application/octet-stream,
@@ -53,6 +54,14 @@ class FirebaseStorageDataSource @Inject constructor(
 
     suspend fun uploadOriginalPhotoBytes(photoId: String, imageBytes: ByteArray): String =
         upload(photoRef(ORIGINAL_PHOTOS_PATH, photoId), imageBytes)
+
+    /** Downscales a local photo (a fan's request photo) and uploads it as an original. */
+    suspend fun uploadOriginalPhotoFromUri(photoId: String, imageUri: Uri): String {
+        val bytes = withContext(ioDispatcher) {
+            ImageScaler.scaleUri(context, imageUri, ORIGINAL_MAX_DIMENSION, SCALED_JPEG_QUALITY)
+        }
+        return upload(photoRef(ORIGINAL_PHOTOS_PATH, photoId), bytes)
+    }
 
     suspend fun uploadSignedPhoto(photoId: String, imageBytes: ByteArray): String =
         upload(photoRef(SIGNED_PHOTOS_PATH, photoId), imageBytes)

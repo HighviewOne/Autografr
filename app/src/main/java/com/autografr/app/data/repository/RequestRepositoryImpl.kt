@@ -29,6 +29,17 @@ class RequestRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getRequest(requestId: String): Result<AutographRequest> {
+        return try {
+            val dto = firestoreDataSource.getRequest(requestId)
+                ?: return Result.error("Request not found")
+            Result.success(RequestMapper.dtoToDomain(dto))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get request $requestId", e)
+            Result.error(e.message ?: "Failed to get request", e)
+        }
+    }
+
     override fun getCelebrityQueue(celebrityId: String): Flow<List<AutographRequest>> = channelFlow {
         launch {
             firestoreDataSource.getCelebrityQueue(celebrityId).collect { dtos ->

@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface RequestRepository {
     fun observeRequest(requestId: String): Flow<AutographRequest?>
+    suspend fun getRequest(requestId: String): Result<AutographRequest>
     fun getCelebrityQueue(celebrityId: String): Flow<List<AutographRequest>>
     fun getFanRequests(fanId: String): Flow<List<AutographRequest>>
     suspend fun createRequest(request: AutographRequest): Result<AutographRequest>

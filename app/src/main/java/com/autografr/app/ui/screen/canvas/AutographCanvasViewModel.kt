@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.net.URL
 import javax.inject.Inject
 
 data class CanvasUiState(
@@ -64,16 +66,28 @@ class AutographCanvasViewModel @Inject constructor(
             try {
                 val bitmap = withContext(ioDispatcher) {
                     val uri = Uri.parse(photoUri)
+                    // Request photos are https download URLs; camera/gallery photos are local
+                    // content:// or file:// URIs. Remote images are fetched once, then decoded twice.
+                    val remoteBytes = if (uri.scheme == "https" || uri.scheme == "http") {
+                        URL(photoUri).openStream().use { it.readBytes() }
+                    } else null
+                    val open: () -> InputStream? = {
+                        remoteBytes?.inputStream() ?: context.contentResolver.openInputStream(uri)
+                    }
                     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                    open()?.use { stream ->
                         BitmapFactory.decodeStream(stream, null, bounds)
                     }
                     val opts = BitmapFactory.Options().apply {
                         inSampleSize = calculateInSampleSize(bounds, MAX_BITMAP_DIMENSION, MAX_BITMAP_DIMENSION)
                     }
-                    context.contentResolver.openInputStream(uri).use { stream ->
+                    open()?.use { stream ->
                         BitmapFactory.decodeStream(stream, null, opts)
                     }
+                }
+                if (bitmap == null) {
+                    _uiState.update { it.copy(error = "Couldn't open this photo") }
+                    return@launch
                 }
                 _uiState.update { it.copy(backgroundBitmap = bitmap) }
             } catch (e: Exception) {
@@ -93,19 +107,24 @@ class AutographCanvasViewModel @Inject constructor(
                 return@launch
             }
 
-            // Upload original photo to Firebase Storage so the URL is remotely accessible
-            val originalBytes = withContext(ioDispatcher) {
-                ByteArrayOutputStream().also { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
-                }.toByteArray()
-            }
-            val originalPhotoUrl = when (val r = uploadOriginalPhotoUseCase(originalBytes)) {
-                is Result.Success -> r.data
-                is Result.Error -> {
-                    Log.w(TAG, "Original photo upload failed, falling back to local URI: ${r.message}")
-                    state.originalPhotoUri
+            // Request photos are already in Storage; local photos get uploaded so the URL is
+            // remotely accessible
+            val originalPhotoUrl = if (state.originalPhotoUri.startsWith("https://")) {
+                state.originalPhotoUri
+            } else {
+                val originalBytes = withContext(ioDispatcher) {
+                    ByteArrayOutputStream().also { out ->
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
+                    }.toByteArray()
                 }
-                else -> state.originalPhotoUri
+                when (val r = uploadOriginalPhotoUseCase(originalBytes)) {
+                    is Result.Success -> r.data
+                    is Result.Error -> {
+                        Log.w(TAG, "Original photo upload failed, falling back to local URI: ${r.message}")
+                        state.originalPhotoUri
+                    }
+                    else -> state.originalPhotoUri
+                }
             }
 
             val imageBytes = withContext(ioDispatcher) {

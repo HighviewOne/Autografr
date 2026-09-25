@@ -21,6 +21,7 @@ import com.autografr.app.ui.screen.profile.CelebrityProfileScreen
 import com.autografr.app.ui.screen.profile.EditProfileScreen
 import com.autografr.app.ui.screen.profile.FanProfileScreen
 import com.autografr.app.ui.screen.request.CelebrityQueueScreen
+import com.autografr.app.ui.screen.request.CreateRequestScreen
 import com.autografr.app.ui.screen.request.FanRequestScreen
 import com.autografr.app.ui.screen.request.RequestDetailScreen
 import com.autografr.app.ui.screen.share.ShareScreen
@@ -113,6 +114,20 @@ fun AutografrNavHost(
             )
         }
 
+        composable<Screen.CreateRequest> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.CreateRequest>()
+            CreateRequestScreen(
+                celebrityId = route.celebrityId,
+                onRequestSent = {
+                    // Land on the fan's request list; Back returns to the celebrity's profile
+                    navController.navigate(Screen.FanRequest) {
+                        popUpTo<Screen.CreateRequest> { inclusive = true }
+                    }
+                },
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
         composable<Screen.CelebrityQueue> {
             CelebrityQueueScreen(
                 onNavigateToDetail = { id ->
@@ -140,7 +155,9 @@ fun AutografrNavHost(
             val route = backStackEntry.toRoute<Screen.CelebrityProfile>()
             CelebrityProfileScreen(
                 celebrityId = route.celebrityId,
-                onNavigateToRequest = { navController.navigate(Screen.FanRequest) },
+                onNavigateToRequest = {
+                    navController.navigate(Screen.CreateRequest(celebrityId = route.celebrityId))
+                },
                 onNavigateToPhoto = { id ->
                     navController.navigate(Screen.ListingDetail(photoId = id))
                 },

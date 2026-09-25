@@ -25,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
@@ -89,16 +88,19 @@ fun AutographCanvasScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .pointerInput(Unit) {
+                            // Record points normalized to the canvas so they map onto the
+                            // full-resolution bitmap on export.
                             detectDragGestures(
                                 onDragStart = { offset ->
-                                    engine.startPath(offset.x, offset.y)
+                                    engine.viewportWidth = size.width.toFloat()
+                                    engine.startPath(offset.x / size.width, offset.y / size.height)
                                     currentPoints = engine.getCurrentPathPoints()
                                 },
                                 onDrag = { change, _ ->
                                     change.consume()
                                     engine.addPoint(
-                                        change.position.x,
-                                        change.position.y
+                                        change.position.x / size.width,
+                                        change.position.y / size.height
                                     )
                                     currentPoints = engine.getCurrentPathPoints()
                                 },
@@ -123,7 +125,7 @@ fun AutographCanvasScreen(
 
                     // Draw completed paths
                     for (path in engine.paths) {
-                        val composePath = path.toComposePath()
+                        val composePath = path.toComposePath(size.width, size.height)
                         drawPath(
                             path = composePath,
                             color = path.color,
@@ -135,16 +137,12 @@ fun AutographCanvasScreen(
 
                     // Draw current stroke being drawn
                     if (currentPoints.size >= 2) {
-                        val currentPath = currentPoints.toComposePath()
+                        val currentPath = currentPoints.toComposePath(size.width, size.height)
                         drawPath(
                             path = currentPath,
                             color = engine.brushConfig.color,
                             alpha = engine.brushConfig.alpha,
-                            style = Stroke(
-                                width = engine.brushConfig.strokeWidth,
-                                cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                                join = androidx.compose.ui.graphics.StrokeJoin.Round
-                            )
+                            style = BrushPresets.forType(engine.brushConfig.type, engine.brushConfig.strokeWidth)
                         )
                     }
                 }

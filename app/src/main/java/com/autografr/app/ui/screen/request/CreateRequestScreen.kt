@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.autografr.app.domain.model.VerificationStatus
 import com.autografr.app.ui.component.ErrorDialog
 import com.autografr.app.ui.component.LoadingIndicator
 
@@ -132,8 +133,11 @@ fun CreateRequestScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            val acceptingRequests = celebrity?.isAcceptingRequests != false
-            if (!acceptingRequests) {
+            // Mirrors the Firestore rules: requests only go to verified celebrities who are open
+            val acceptingRequests = celebrity != null
+                && celebrity.verificationStatus == VerificationStatus.VERIFIED
+                && celebrity.isAcceptingRequests
+            if (celebrity != null && !acceptingRequests) {
                 Text(
                     text = "Not accepting requests right now",
                     style = MaterialTheme.typography.bodyMedium,

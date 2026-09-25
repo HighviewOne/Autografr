@@ -6,6 +6,8 @@ import com.autografr.app.data.remote.dto.TransactionDto
 import com.autografr.app.data.remote.dto.UserDto
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.FirebaseFirestoreException.Code
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -242,14 +244,34 @@ class FirestoreDataSource @Inject constructor(
         awaitClose { listener.remove() }
     }
 
-    // Transactions
-    suspend fun saveTransaction(transactionDto: TransactionDto) {
-        firestore.collection(TRANSACTIONS_COLLECTION)
-            .document(transactionDto.id)
-            .set(transactionDto)
-            .await()
+    /**
+     * Atomically marks a listed photo SOLD to [buyerId] and records the transaction
+     * built by [buildTransaction] from the photo as read inside the transaction.
+     * Fails if the photo is gone, no longer listed, or already owned by the buyer.
+     */
+    suspend fun purchasePhoto(
+        photoId: String,
+        buyerId: String,
+        buildTransaction: (SignedPhotoDto) -> TransactionDto
+    ): Pair<SignedPhotoDto, TransactionDto> {
+        val photoRef = firestore.collection(PHOTOS_COLLECTION).document(photoId)
+        return firestore.runTransaction { tx ->
+            val photo = tx.get(photoRef).toObject(SignedPhotoDto::class.java)
+                ?: throw FirebaseFirestoreException("Listing not found", Code.NOT_FOUND)
+            if (photo.status != "LISTED") {
+                throw FirebaseFirestoreException("This item is no longer for sale", Code.FAILED_PRECONDITION)
+            }
+            if (photo.ownerId == buyerId) {
+                throw FirebaseFirestoreException("You already own this item", Code.FAILED_PRECONDITION)
+            }
+            val transaction = buildTransaction(photo)
+            tx.set(firestore.collection(TRANSACTIONS_COLLECTION).document(transaction.id), transaction)
+            tx.update(photoRef, mapOf("status" to "SOLD", "ownerId" to buyerId))
+            photo.copy(status = "SOLD", ownerId = buyerId) to transaction
+        }.await()
     }
 
+    // Transactions
     fun getTransactionsByUser(userId: String): Flow<List<TransactionDto>> = callbackFlow {
         val listener = firestore.collection(TRANSACTIONS_COLLECTION)
             .whereEqualTo("buyerId", userId)

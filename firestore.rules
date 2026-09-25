@@ -2,6 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Tests for these rules live in rules-tests/ — run them after any change.
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -11,30 +13,57 @@ service cloud.firestore {
       return request.resource.data[field] == resource.data[field];
     }
 
+    // An update may touch only the listed fields (compares values, so a full-doc
+    // set() that leaves other fields as they were still passes).
+    function onlyChanges(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    function userDoc(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
+    }
+
+    function isVerifiedCelebrity(user) {
+      return user.role == 'CELEBRITY'
+        && user.get('verificationStatus', null) == 'VERIFIED';
+    }
+
     // ── users/{userId} ────────────────────────────────────────────────────────
     //
     // Any signed-in user can read profiles (celebrity discovery, fan profile pages).
-    // Users can create and update only their own document, with two hard restrictions:
+    // Users can create and update only their own document:
     //   - `role` is set on create; the only change allowed afterwards is the one-way
     //     FAN → CELEBRITY switch made on the profile-setup screen (registration always
     //     creates a FAN). Being a CELEBRITY grants nothing on its own — anything that
     //     matters is gated on `verificationStatus`.
-    //   - `verificationStatus` starts null and can only be set by a backend process
-    //     (Cloud Function / Admin SDK) — clients can never touch it
+    //   - `verificationStatus` and the reputation/counter fields (rating, totals,
+    //     collectionCount) start empty and can only be set by a backend process
+    //     (Cloud Function / Admin SDK). Updates are limited to the fields a user
+    //     legitimately edits.
+    function hasNoStats(data) {
+      return data.get('verificationStatus', null) == null
+        && data.get('rating', null) in [null, 0]
+        && data.get('totalAutographs', null) in [null, 0]
+        && data.get('totalPurchases', null) in [null, 0]
+        && data.get('collectionCount', null) in [null, 0];
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn();
 
       allow create: if request.auth.uid == userId
         && request.resource.data.id == userId
         && request.resource.data.role in ['FAN', 'CELEBRITY']
-        && request.resource.data.verificationStatus == null;
+        && hasNoStats(request.resource.data);
 
       allow update: if request.auth.uid == userId
-        && unchanged('id')
+        && onlyChanges(['displayName', 'bio', 'profileImageUrl', 'role', 'category',
+                        'autographPrice', 'isAcceptingRequests', 'socialLinks',
+                        'favoriteCategories'])
         && (unchanged('role')
           || (resource.data.role == 'FAN' && request.resource.data.role == 'CELEBRITY'))
-        && unchanged('verificationStatus')
-        && unchanged('createdAt');
+        && (request.resource.data.get('autographPrice', null) == null
+          || request.resource.data.autographPrice >= 0);
     }
 
     // True if `photo` is being signed for an open request addressed to the caller,
@@ -56,19 +85,23 @@ service cloud.firestore {
     //
     // Any signed-in user can read photos (marketplace, feed, profile grids).
     //
-    // Three distinct write paths, each locked to one actor:
+    // Only VERIFIED celebrities can create signed photos, as themselves — otherwise
+    // anyone could sell an "autograph" under a famous name. Verification is set by
+    // the backend (for now: by hand in the Firebase Console).
     //
-    //   1. CELEBRITY SIGNING — the celebrity named on the photo can update it
-    //      to set photo URLs and advance status (DRAFT → SIGNED). They cannot
-    //      touch ownerId, requestId, price, createdAt, or their own celebrityId.
+    // Three update paths, each locked to one actor:
+    //
+    //   1. CELEBRITY FINISHING A DRAFT — the celebrity named on a DRAFT photo can set
+    //      its image URLs and move it to SIGNED. Nothing else, and never once it's
+    //      signed (a celebrity can't touch a photo after it's been sold).
     //
     //   2. OWNER LISTING — the current owner can list or delist the photo
-    //      (SIGNED ↔ LISTED) and change price/title/description. They cannot
-    //      change ownerId, celebrityId, requestId, or createdAt.
+    //      (SIGNED ↔ LISTED) and change price/title/description/tags.
     //
-    //   3. PURCHASE — any signed-in user can "buy" a LISTED photo: status flips
-    //      to SOLD and ownerId transfers to the buyer (request.auth.uid).
-    //      Immutable fields (price, celebrityId, requestId, createdAt) are frozen.
+    //   3. PURCHASE — any signed-in user other than the owner can "buy" a LISTED
+    //      photo: status flips to SOLD and ownerId transfers to the buyer. Only those
+    //      two fields change. The app writes this together with the transaction doc
+    //      in one Firestore transaction.
     //      ⚠ No payment verification at this layer — move purchaseListing to a
     //        Cloud Function before launch so a real payment gate can be added.
     match /signed_photos/{photoId} {
@@ -77,21 +110,23 @@ service cloud.firestore {
       // The new photo belongs to its celebrity, or — when signed for a request —
       // to the fan who made that request (the celebrity must be the one it was sent to).
       allow create: if isSignedIn()
+        && isVerifiedCelebrity(userDoc(request.auth.uid))
         && request.resource.data.celebrityId == request.auth.uid
         && request.resource.data.status in ['DRAFT', 'SIGNED']
         && request.resource.data.id == photoId
+        && request.resource.data.get('likeCount', 0) == 0
+        && request.resource.data.get('viewCount', 0) == 0
         && (request.resource.data.ownerId == request.auth.uid
           || isFulfillingRequest(request.resource.data));
 
       allow update: if isSignedIn() && (
 
-        // 1. Celebrity signing their own photo
+        // 1. Celebrity finishing a draft
         (request.auth.uid == resource.data.celebrityId
-          && unchanged('ownerId')
-          && unchanged('requestId')
-          && unchanged('createdAt')
-          && unchanged('celebrityId')
-          && unchanged('price'))
+          && resource.data.status == 'DRAFT'
+          && request.resource.data.status in ['DRAFT', 'SIGNED']
+          && onlyChanges(['status', 'signedPhotoUrl', 'thumbnailUrl',
+                          'originalPhotoUrl', 'signedAt']))
 
         ||
 
@@ -99,21 +134,17 @@ service cloud.firestore {
         (request.auth.uid == resource.data.ownerId
           && resource.data.status in ['SIGNED', 'LISTED']
           && request.resource.data.status in ['SIGNED', 'LISTED']
-          && unchanged('ownerId')
-          && unchanged('celebrityId')
-          && unchanged('requestId')
-          && unchanged('createdAt'))
+          && onlyChanges(['status', 'price', 'title', 'description', 'tags'])
+          && (request.resource.data.status != 'LISTED' || request.resource.data.price > 0))
 
         ||
 
         // 3. Purchase: LISTED → SOLD, ownership transfers to buyer
         (resource.data.status == 'LISTED'
+          && resource.data.ownerId != request.auth.uid
           && request.resource.data.status == 'SOLD'
           && request.resource.data.ownerId == request.auth.uid
-          && unchanged('celebrityId')
-          && unchanged('price')
-          && unchanged('requestId')
-          && unchanged('createdAt'))
+          && onlyChanges(['status', 'ownerId']))
       );
     }
 
@@ -122,14 +153,32 @@ service cloud.firestore {
     // Only the fan and the celebrity on a request can read it.
     //
     // Fans create requests; fanId must match the caller so they can't impersonate.
-    // Initial status must be PENDING — fans cannot create pre-accepted requests.
+    // Requests can only go to a verified celebrity who is accepting requests, at
+    // exactly that celebrity's listed price. Initial status must be PENDING.
     //
-    // Two update paths:
-    //   FAN    — can only cancel a PENDING request (PENDING → CANCELLED).
-    //   CELEBRITY — can drive the workflow: PENDING→ACCEPTED/REJECTED,
-    //               ACCEPTED→IN_PROGRESS, IN_PROGRESS→COMPLETED/REJECTED.
-    //               They can also set signedPhotoId once signing is done.
-    // Core identity fields (fanId, celebrityId, price, createdAt) are frozen for both.
+    // Two update paths (only status, signedPhotoId and updatedAt ever change):
+    //   FAN       — can only cancel a PENDING request (PENDING → CANCELLED).
+    //   CELEBRITY — drives the workflow: PENDING → ACCEPTED/REJECTED,
+    //               ACCEPTED → IN_PROGRESS/COMPLETED/REJECTED,
+    //               IN_PROGRESS → COMPLETED/REJECTED. COMPLETED must name a signed
+    //               photo that was made for this request.
+    function celebrityTakesRequestAt(celebrity, price) {
+      return isVerifiedCelebrity(celebrity)
+        && celebrity.get('isAcceptingRequests', true) != false
+        && price == celebrity.get('autographPrice', 0);
+    }
+
+    function isValidRequestTransition(from, to) {
+      return (from == 'PENDING' && to in ['ACCEPTED', 'REJECTED'])
+        || (from == 'ACCEPTED' && to in ['IN_PROGRESS', 'COMPLETED', 'REJECTED'])
+        || (from == 'IN_PROGRESS' && to in ['COMPLETED', 'REJECTED']);
+    }
+
+    function isPhotoForRequest(photoId, requestId) {
+      return photoId is string
+        && get(/databases/$(database)/documents/signed_photos/$(photoId)).data.get('requestId', null) == requestId;
+    }
+
     match /autograph_requests/{requestId} {
       allow read: if isSignedIn()
         && (request.auth.uid == resource.data.fanId
@@ -137,8 +186,12 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.resource.data.fanId == request.auth.uid
+        && request.resource.data.celebrityId != request.auth.uid
         && request.resource.data.status == 'PENDING'
-        && request.resource.data.id == requestId;
+        && request.resource.data.id == requestId
+        && request.resource.data.get('signedPhotoId', null) == null
+        && celebrityTakesRequestAt(userDoc(request.resource.data.celebrityId),
+                                   request.resource.data.price);
 
       allow update: if isSignedIn() && (
 
@@ -146,21 +199,16 @@ service cloud.firestore {
         (request.auth.uid == resource.data.fanId
           && resource.data.status == 'PENDING'
           && request.resource.data.status == 'CANCELLED'
-          && unchanged('fanId')
-          && unchanged('celebrityId')
-          && unchanged('price')
-          && unchanged('createdAt'))
+          && onlyChanges(['status', 'updatedAt']))
 
         ||
 
         // Celebrity manages the request workflow
         (request.auth.uid == resource.data.celebrityId
-          && resource.data.status in ['PENDING', 'ACCEPTED', 'IN_PROGRESS']
-          && request.resource.data.status in ['ACCEPTED', 'REJECTED', 'IN_PROGRESS', 'COMPLETED']
-          && unchanged('fanId')
-          && unchanged('celebrityId')
-          && unchanged('price')
-          && unchanged('createdAt'))
+          && isValidRequestTransition(resource.data.status, request.resource.data.status)
+          && onlyChanges(['status', 'signedPhotoId', 'updatedAt'])
+          && (request.resource.data.status != 'COMPLETED'
+            || isPhotoForRequest(request.resource.data.get('signedPhotoId', null), requestId)))
       );
     }
 
@@ -168,13 +216,20 @@ service cloud.firestore {
     //
     // Only the buyer or seller can read a transaction (private financial records).
     //
-    // Clients write their own purchase transactions; buyerId must equal auth.uid
-    // so users cannot fabricate transactions on behalf of others.
+    // A client can only record its own marketplace purchase of a photo that is
+    // listed right now: seller and amount must match the listing as it stands
+    // before the purchase commits (get() sees pre-commit state).
     // ⚠ The app currently writes COMPLETED status directly from the client with
     //   no payment gate. Move purchaseListing to a Cloud Function and restrict
     //   create to `false` here once that's in place.
     //
     // Updates and deletes are denied entirely — transactions are append-only.
+    function matchesListing(tx, photo) {
+      return photo.status == 'LISTED'
+        && tx.sellerId == photo.ownerId
+        && tx.amount == photo.price;
+    }
+
     match /transactions/{transactionId} {
       allow read: if isSignedIn()
         && (request.auth.uid == resource.data.buyerId
@@ -182,7 +237,12 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.resource.data.buyerId == request.auth.uid
-        && request.resource.data.id == transactionId;
+        && request.resource.data.sellerId != request.auth.uid
+        && request.resource.data.id == transactionId
+        && request.resource.data.type == 'MARKETPLACE_PURCHASE'
+        && request.resource.data.relatedItemId is string
+        && matchesListing(request.resource.data,
+          get(/databases/$(database)/documents/signed_photos/$(request.resource.data.relatedItemId)).data);
 
       allow update, delete: if false;
     }

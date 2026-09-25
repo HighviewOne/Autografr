@@ -75,30 +75,22 @@ class MarketplaceRepositoryImpl @Inject constructor(
 
     override suspend fun purchaseListing(photoId: String, buyerId: String): Result<Transaction> {
         return try {
-            val photoDto = firestoreDataSource.getPhoto(photoId)
-                ?: return Result.error("Listing not found")
-
-            val transaction = TransactionDto(
-                id = UUID.randomUUID().toString(),
-                buyerId = buyerId,
-                sellerId = photoDto.ownerId,
-                type = TransactionType.MARKETPLACE_PURCHASE.name,
-                status = TransactionStatus.COMPLETED.name,
-                amount = photoDto.price,
-                relatedItemId = photoId,
-                description = "Purchase of ${photoDto.title}",
-                createdAt = System.currentTimeMillis(),
-                completedAt = System.currentTimeMillis()
-            )
-            firestoreDataSource.saveTransaction(transaction)
+            val (soldPhoto, transaction) = firestoreDataSource.purchasePhoto(photoId, buyerId) { photo ->
+                TransactionDto(
+                    id = UUID.randomUUID().toString(),
+                    buyerId = buyerId,
+                    sellerId = photo.ownerId,
+                    type = TransactionType.MARKETPLACE_PURCHASE.name,
+                    status = TransactionStatus.COMPLETED.name,
+                    amount = photo.price,
+                    relatedItemId = photoId,
+                    description = "Purchase of ${photo.title}",
+                    createdAt = System.currentTimeMillis(),
+                    completedAt = System.currentTimeMillis()
+                )
+            }
             transactionDao.insertTransaction(TransactionMapper.dtoToEntity(transaction))
-
-            val updatedPhoto = photoDto.copy(
-                status = PhotoStatus.SOLD.name,
-                ownerId = buyerId
-            )
-            firestoreDataSource.savePhoto(updatedPhoto)
-            signedPhotoDao.insertPhoto(PhotoMapper.dtoToEntity(updatedPhoto))
+            signedPhotoDao.insertPhoto(PhotoMapper.dtoToEntity(soldPhoto))
 
             Result.success(TransactionMapper.dtoToDomain(transaction))
         } catch (e: Exception) {

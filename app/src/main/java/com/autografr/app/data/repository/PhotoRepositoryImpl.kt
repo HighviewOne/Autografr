@@ -10,6 +10,7 @@ import com.autografr.app.domain.model.PhotoStatus
 import com.autografr.app.domain.model.SignedPhoto
 import com.autografr.app.domain.repository.PhotoRepository
 import com.autografr.app.domain.util.Result
+import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
@@ -73,7 +74,15 @@ class PhotoRepositoryImpl @Inject constructor(
             )
 
             val dto = PhotoMapper.domainToDto(updatedPhoto)
-            firestoreDataSource.savePhoto(dto)
+            try {
+                firestoreDataSource.savePhoto(dto)
+            } catch (e: FirebaseFirestoreException) {
+                // Rules only let verified celebrities create signed photos
+                if (e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                    throw IllegalStateException("Only verified celebrities can save autographs.", e)
+                }
+                throw e
+            }
             savedToFirestore = true
             signedPhotoDao.insertPhoto(PhotoMapper.domainToEntity(updatedPhoto))
 

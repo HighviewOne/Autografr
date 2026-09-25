@@ -100,6 +100,17 @@ Then enable three services:
 > **Production note:** Replace the test-mode rules with the ones in this repo:
 > `firebase deploy --only firestore:rules,storage`.
 
+#### Security rules tests
+
+`rules-tests/` runs `firestore.rules` and `storage.rules` against the local
+Firebase emulator (no real project is touched). Run it after any rules change:
+
+```bash
+cd rules-tests
+npm install
+npm test        # needs Java 21+ on PATH for the emulator
+```
+
 #### App Check
 
 Debug builds use the App Check **debug provider**: each install prints its own

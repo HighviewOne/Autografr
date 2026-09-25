@@ -1,0 +1,14 @@
+{
+  "name": "autografr-rules-tests",
+  "private": true,
+  "description": "Firestore + Storage security rules tests, run against the local Firebase emulator",
+  "type": "module",
+  "scripts": {
+    "test": "cp ../firestore.rules ../storage.rules . && firebase emulators:exec --only firestore,storage --project demo-autografr 'node --test --test-concurrency=1'"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0",
+    "firebase-tools": "^15.31.0"
+  }
+}

@@ -17,3 +17,9 @@ local.properties
 
 # Firebase config (contains API keys)
 app/google-services.json
+
+# Rules tests
+rules-tests/node_modules/
+rules-tests/*.log
+rules-tests/firestore.rules
+rules-tests/storage.rules

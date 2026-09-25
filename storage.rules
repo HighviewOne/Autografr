@@ -13,6 +13,11 @@ service firebase.storage {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Storage treats an overwrite as `create` too, so "create-only" needs this.
+    function isNewObject() {
+      return resource == null;
+    }
+
     // Client-generated UUID + .jpg — no arbitrary names or extensions.
     function isPhotoFileName(fileName) {
       return fileName.matches('[A-Za-z0-9-]{1,64}[.]jpg');
@@ -38,26 +43,27 @@ service firebase.storage {
     }
 
     // ── {original_photos,signed_photos,thumbnails}/{userId}/{photoId}.jpg ─────
-    // All three are uploaded from the celebrity's canvas on save. The uploader's
-    // uid is in the path, so only they can create or delete their objects.
+    // Signed photos and thumbnails come from the celebrity's canvas on save;
+    // originals come from there or from a fan attaching a photo to a request.
+    // The uploader's uid is in the path, so only they can create or delete their objects.
     // Create-only: finished work can never be overwritten, even by its author
     // (every save uses a fresh photoId).
     match /original_photos/{userId}/{fileName} {
       allow read: if isSignedIn();
-      allow create: if isOwner(userId) && isPhotoFileName(fileName) && isJpegUnder(15);
+      allow create: if isOwner(userId) && isNewObject() && isPhotoFileName(fileName) && isJpegUnder(15);
       allow delete: if isOwner(userId);
     }
 
     match /signed_photos/{userId}/{fileName} {
       allow read: if isSignedIn();
-      allow create: if isOwner(userId) && isPhotoFileName(fileName) && isJpegUnder(15);
+      allow create: if isOwner(userId) && isNewObject() && isPhotoFileName(fileName) && isJpegUnder(15);
       allow delete: if isOwner(userId);
     }
 
     // The app uploads a ≤512 px copy here.
     match /thumbnails/{userId}/{fileName} {
       allow read: if isSignedIn();
-      allow create: if isOwner(userId) && isPhotoFileName(fileName) && isJpegUnder(2);
+      allow create: if isOwner(userId) && isNewObject() && isPhotoFileName(fileName) && isJpegUnder(2);
       allow delete: if isOwner(userId);
     }
 

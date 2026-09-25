@@ -46,9 +46,14 @@ class PhotoRepositoryImpl @Inject constructor(
         photo: SignedPhoto,
         imageBytes: ByteArray
     ): Result<SignedPhoto> {
+        var uploadedSigned = false
+        var uploadedThumbnail = false
+        var savedToFirestore = false
         return try {
             val signedUrl = storageDataSource.uploadSignedPhoto(photo.id, imageBytes)
+            uploadedSigned = true
             val thumbnailUrl = storageDataSource.uploadThumbnail(photo.id, imageBytes)
+            uploadedThumbnail = true
 
             val updatedPhoto = photo.copy(
                 signedPhotoUrl = signedUrl,
@@ -59,12 +64,26 @@ class PhotoRepositoryImpl @Inject constructor(
 
             val dto = PhotoMapper.domainToDto(updatedPhoto)
             firestoreDataSource.savePhoto(dto)
+            savedToFirestore = true
             signedPhotoDao.insertPhoto(PhotoMapper.domainToEntity(updatedPhoto))
 
             Result.success(updatedPhoto)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to save signed photo ${photo.id}", e)
+            // Don't leave orphaned Storage objects behind a save that never reached Firestore
+            if (!savedToFirestore) {
+                if (uploadedSigned) deleteQuietly(FirebaseStorageDataSource.SIGNED_PHOTOS_PATH, photo.id)
+                if (uploadedThumbnail) deleteQuietly(FirebaseStorageDataSource.THUMBNAILS_PATH, photo.id)
+            }
             Result.error(e.message ?: "Failed to save signed photo", e)
+        }
+    }
+
+    private suspend fun deleteQuietly(folder: String, photoId: String) {
+        try {
+            storageDataSource.deletePhotoFile(folder, photoId)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to clean up $folder/$photoId", e)
         }
     }
 

@@ -97,7 +97,20 @@ Then enable three services:
 ./gradlew assembleDebug   # rebuild after adding google-services.json
 ```
 
-> **Production note:** Replace the test-mode Firestore/Storage rules with proper security rules before shipping.
+> **Production note:** Replace the test-mode rules with the ones in this repo:
+> `firebase deploy --only firestore:rules,storage`.
+
+#### App Check
+
+Debug builds use the App Check **debug provider**: each install prints its own
+token to logcat, and only tokens registered under Console → App Check → Manage
+debug tokens are accepted. Release builds use **Play Integrity**, which only
+passes for installs that came from Google Play (an internal-testing track works).
+
+**Do not turn on App Check enforcement while the app is shared as a sideloaded
+APK** (`app-debug.apk` or a sideloaded release build). Every such install will
+be rejected by Firestore and Storage. Leave enforcement off (Console shows
+"unenforced" metrics only) until testers install through a Play track.
 
 ## Design System — Studio Pass
 

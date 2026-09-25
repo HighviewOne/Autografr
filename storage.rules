@@ -2,56 +2,68 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    // Note: the app stores getDownloadUrl() links (…?token=…) in Firestore, and
+    // those bypass these rules — `allow read` here only governs SDK reads.
+
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isImage() {
-      return request.resource.contentType.matches('image/.*');
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Client-generated UUID + .jpg — no arbitrary names or extensions.
+    function isPhotoFileName(fileName) {
+      return fileName.matches('[A-Za-z0-9-]{1,64}[.]jpg');
+    }
+
+    // JPEG only (the app always re-encodes to JPEG). Rejects SVG/HTML and other
+    // types that could be served back as active content.
+    function isJpegUnder(maxMb) {
+      return request.resource.contentType == 'image/jpeg'
+        && request.resource.size < maxMb * 1024 * 1024;
     }
 
     // ── profile_images/{userId}.jpg ───────────────────────────────────────────
-    // Filename is the owner's uid — only that user can write their own avatar.
+    // Filename is the owner's uid. The app downscales avatars to ≤1024 px before
+    // upload. Owners may replace or delete their own avatar.
     match /profile_images/{fileName} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn()
+      allow create, update: if isSignedIn()
         && fileName == request.auth.uid + '.jpg'
-        && isImage()
-        && request.resource.size < 5 * 1024 * 1024;
+        && isJpegUnder(5);
+      allow delete: if isSignedIn()
+        && fileName == request.auth.uid + '.jpg';
     }
 
-    // ── original_photos/{photoId}.jpg ─────────────────────────────────────────
-    // Uploaded by the fan before the signing request doc exists, so ownership
-    // can't be checked against Firestore here. Any signed-in user may upload;
-    // overwrites of finished work are prevented at the Firestore layer (photo
-    // status transitions), and uploads are capped by type and size.
-    match /original_photos/{fileName} {
+    // ── {original_photos,signed_photos,thumbnails}/{userId}/{photoId}.jpg ─────
+    // All three are uploaded from the celebrity's canvas on save. The uploader's
+    // uid is in the path, so only they can create or delete their objects.
+    // Create-only: finished work can never be overwritten, even by its author
+    // (every save uses a fresh photoId).
+    match /original_photos/{userId}/{fileName} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn()
-        && isImage()
-        && request.resource.size < 15 * 1024 * 1024;
+      allow create: if isOwner(userId) && isPhotoFileName(fileName) && isJpegUnder(15);
+      allow delete: if isOwner(userId);
     }
 
-    // ── signed_photos/{photoId}.jpg ───────────────────────────────────────────
-    // Written by the celebrity when exporting the signed canvas. The photo doc
-    // may not exist in Firestore yet at upload time, so this allows any
-    // signed-in user; the authoritative ownership record is the Firestore doc.
-    match /signed_photos/{fileName} {
+    match /signed_photos/{userId}/{fileName} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn()
-        && isImage()
-        && request.resource.size < 15 * 1024 * 1024;
+      allow create: if isOwner(userId) && isPhotoFileName(fileName) && isJpegUnder(15);
+      allow delete: if isOwner(userId);
     }
 
-    // ── thumbnails/{photoId}.jpg ──────────────────────────────────────────────
-    match /thumbnails/{fileName} {
+    // The app uploads a ≤512 px copy here.
+    match /thumbnails/{userId}/{fileName} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn()
-        && isImage()
-        && request.resource.size < 2 * 1024 * 1024;
+      allow create: if isOwner(userId) && isPhotoFileName(fileName) && isJpegUnder(2);
+      allow delete: if isOwner(userId);
     }
 
-    // Everything else: denied.
+    // Everything else — including pre-2026-09 flat paths like signed_photos/{id}.jpg —
+    // is denied. Existing objects there stay reachable through their stored
+    // download-token URLs.
     match /{allPaths=**} {
       allow read, write: if false;
     }

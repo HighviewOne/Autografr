@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autografr.app.domain.model.UserRole
 import coil3.compose.AsyncImage
 import com.autografr.app.domain.model.Celebrity
 import com.autografr.app.domain.model.SignedPhoto
@@ -68,7 +69,8 @@ fun FeedScreen(
                     )
                 },
                 actions = {
-                    if (viewModel.isCelebrity) {
+                    // Read from collected state so the bar updates once the user loads
+                    if (uiState.currentUser?.role == UserRole.CELEBRITY) {
                         IconButton(onClick = onNavigateToCamera) {
                             Icon(Icons.Default.CameraAlt, contentDescription = "Camera")
                         }

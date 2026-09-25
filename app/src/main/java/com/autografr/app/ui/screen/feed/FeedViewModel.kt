@@ -52,7 +52,4 @@ class FeedViewModel @Inject constructor(
             }
         }
     }
-
-    val isCelebrity: Boolean
-        get() = _uiState.value.currentUser?.role == UserRole.CELEBRITY
 }

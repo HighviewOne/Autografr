@@ -31,8 +31,8 @@
 | **Autograph requests** | Fans request signings; celebrities manage a live queue |
 | **Drawing canvas** | 5 brush types (Pen, Marker, Calligraphy, Glow, Eraser), undo/redo, color & size controls |
 | **Camera & gallery** | Capture a new photo or pick from your library |
-| **CertCard collectibles** | Each signed photo becomes a Studio Pass card with QR authentication |
-| **Marketplace** | Browse, buy, and sell signed cards |
+| **Collectibles** | Each signed photo is an ownable, tradeable item (Studio Pass CertCard with QR authentication is designed but not yet built) |
+| **Marketplace** | Browse, list, and buy signed photos (no payment processing yet — see Known gaps) |
 | **Feed** | Discover trending autographs and featured celebrities |
 | **Social sharing** | Share signed photos directly to social media |
 
@@ -111,6 +111,36 @@ npm install
 npm test        # needs Java 21+ on PATH for the emulator
 ```
 
+#### Celebrity verification
+
+Only celebrities with `verificationStatus: "VERIFIED"` can save autographs or
+receive requests — the rules enforce this so nobody can sell an "autograph" under
+someone else's name. Users choose Fan or Celebrity at profile setup, but
+verification can only be set server-side. Until there's a backend process for it,
+set it by hand: Firebase Console → Firestore → `users/<uid>` → add
+`verificationStatus` = `"VERIFIED"` (string). Rating and autograph/purchase
+counters are server-only too and stay at zero until a backend maintains them.
+
+#### Testing on a device with local emulators
+
+A debug build can talk to the local Firebase emulators instead of the real
+project, so you can test end-to-end without touching live data:
+
+```bash
+cd rules-tests && npm run emulators     # Auth :9099, Firestore :8181, Storage :9199 (Java 21+)
+# in another terminal, with the phone connected over USB:
+adb reverse tcp:9099 tcp:9099 && adb reverse tcp:8181 tcp:8181 && adb reverse tcp:9199 tcp:9199
+./gradlew installDebug -PuseFirebaseEmulators=true
+```
+
+Without `-PuseFirebaseEmulators=true` (the default), debug builds use the real
+project — reinstall a normal build before using the app for real. Emulator data
+is in-memory and is lost when the emulators stop. To verify a test celebrity,
+PATCH their `users/<uid>` doc through the Firestore emulator's REST API with
+`Authorization: Bearer owner` (bypasses rules).
+Stop the emulators (Ctrl-C) and `./gradlew --stop` when you're done — they hold
+several GB between them.
+
 #### App Check
 
 Debug builds use the App Check **debug provider**: each install prints its own
@@ -122,6 +152,33 @@ passes for installs that came from Google Play (an internal-testing track works)
 APK** (`app-debug.apk` or a sideloaded release build). Every such install will
 be rejected by Firestore and Storage. Leave enforcement off (Console shows
 "unenforced" metrics only) until testers install through a Play track.
+
+## Releasing
+
+The app and the security rules must ship together: builds from before
+2026-09-25 write Storage paths the current rules reject, and current builds
+need the current rules.
+
+1. `cd rules-tests && npm test` — all rules tests pass.
+2. `firebase deploy --only firestore:rules,storage`
+3. Hand out the new APK at the same time.
+4. Mark real celebrity accounts verified (see *Celebrity verification*).
+
+## Known gaps
+
+- **Payments:** purchases are recorded client-side with no payment gate. Before
+  launch, move `purchaseListing` into a Cloud Function behind a payment provider
+  and set `transactions` create to `false` in `firestore.rules`.
+- **Server-side jobs:** nothing sets `verificationStatus` or updates rating /
+  autograph / purchase counters yet.
+- **Resale:** there's no way to list a photo you bought (listing is only offered
+  right after signing).
+- **Canvas:** the photo is stretched to fill the canvas; the eraser clears the
+  photo underneath, not just strokes (erased areas export black).
+- **Stale cache:** Marketplace/Trending and the request queue are served from
+  Room and don't evict items that leave the Firestore query (e.g. sold elsewhere).
+- **Download URLs:** stored `getDownloadUrl()` links carry a token, so anyone
+  with a link can fetch the image without signing in.
 
 ## Design System — Studio Pass
 

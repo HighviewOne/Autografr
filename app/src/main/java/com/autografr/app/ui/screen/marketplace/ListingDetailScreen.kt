@@ -1,5 +1,7 @@
 package com.autografr.app.ui.screen.marketplace
 
+import com.autografr.app.ui.component.PriceTag
+import com.autografr.app.domain.model.PhotoStatus
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -101,14 +103,36 @@ fun ListingDetailScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    if (photo.status == PhotoStatus.LISTED) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        PriceTag(price = photo.price)
+                    }
+
                     Spacer(modifier = Modifier.weight(1f))
 
-                    Button(
-                        onClick = { viewModel.purchaseListing(photoId) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !uiState.isLoading
-                    ) {
-                        Text("Purchase")
+                    // The photo is observed live, so this flips to "yours" as soon as a purchase commits
+                    val ownedByMe = photo.ownerId == uiState.currentUserId
+                    when {
+                        ownedByMe -> Text(
+                            text = if (uiState.purchaseSuccess) "Purchase complete — it's in your collection"
+                                   else "This autograph is in your collection",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        photo.status == PhotoStatus.LISTED -> Button(
+                            onClick = { viewModel.purchaseListing(photoId) },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isLoading
+                        ) {
+                            Text("Buy for $${String.format("%.2f", photo.price)}")
+                        }
+                        else -> Text(
+                            text = "Not for sale",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }

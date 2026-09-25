@@ -1,5 +1,6 @@
 package com.autografr.app.ui.screen.profile
 
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,7 @@ fun FanProfileScreen(
     onNavigateToEdit: () -> Unit,
     onNavigateToPhoto: (String) -> Unit,
     onNavigateBack: () -> Unit,
+    onSignedOut: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -63,6 +65,12 @@ fun FanProfileScreen(
                 actions = {
                     IconButton(onClick = onNavigateToEdit) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit Profile")
+                    }
+                    IconButton(onClick = {
+                        viewModel.signOut()
+                        onSignedOut()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Sign Out")
                     }
                 }
             )
@@ -136,7 +144,7 @@ fun FanProfileScreen(
                         ) {
                             AsyncImage(
                                 model = photo.thumbnailUrl.ifEmpty { photo.signedPhotoUrl },
-                                contentDescription = photo.title,
+                                contentDescription = photo.title.ifEmpty { "Autograph by ${photo.celebrityName}" },
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )

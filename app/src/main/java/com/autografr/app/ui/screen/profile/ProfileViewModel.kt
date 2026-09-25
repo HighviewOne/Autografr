@@ -1,5 +1,6 @@
 package com.autografr.app.ui.screen.profile
 
+import com.autografr.app.usecase.auth.LogoutUseCase
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autografr.app.domain.model.Celebrity
@@ -32,7 +33,8 @@ class ProfileViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getCelebrityProfileUseCase: GetCelebrityProfileUseCase,
     private val getPortfolioUseCase: GetPortfolioUseCase,
-    private val updateProfileUseCase: UpdateProfileUseCase
+    private val updateProfileUseCase: UpdateProfileUseCase,
+    private val logoutUseCase: LogoutUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -92,5 +94,9 @@ class ProfileViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    fun signOut() {
+        logoutUseCase()
     }
 }

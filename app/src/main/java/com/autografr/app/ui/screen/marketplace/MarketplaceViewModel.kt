@@ -24,7 +24,8 @@ data class MarketplaceUiState(
     val listings: List<SignedPhoto> = emptyList(),
     val trending: List<SignedPhoto> = emptyList(),
     val selectedPhoto: SignedPhoto? = null,
-    val purchaseSuccess: Boolean = false
+    val purchaseSuccess: Boolean = false,
+    val currentUserId: String? = null
 )
 
 @HiltViewModel
@@ -37,7 +38,9 @@ class MarketplaceViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(MarketplaceUiState())
+    private val _uiState = MutableStateFlow(
+        MarketplaceUiState(currentUserId = getCurrentUserUseCase.getCurrentUserId())
+    )
     val uiState: StateFlow<MarketplaceUiState> = _uiState.asStateFlow()
 
     fun loadListings() {

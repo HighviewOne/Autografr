@@ -134,7 +134,7 @@ private fun ListingCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                PriceTag(price = photo.likeCount.toDouble())
+                PriceTag(price = photo.price)
             }
         }
     }

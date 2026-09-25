@@ -1,5 +1,6 @@
 package com.autografr.app.ui.screen.share
 
+import com.autografr.app.domain.model.PhotoStatus
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -105,14 +106,28 @@ fun ShareScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    OutlinedButton(
-                        onClick = onNavigateToCreateListing,
-                        modifier = Modifier.fillMaxWidth()
+                    val photo = uiState.photo
+                    if (photo != null && photo.ownerId == uiState.currentUserId
+                        && photo.status == PhotoStatus.SIGNED
                     ) {
-                        Text("List on Marketplace")
-                    }
+                        OutlinedButton(
+                            onClick = onNavigateToCreateListing,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("List on Marketplace")
+                        }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                    } else if (photo != null && photo.requestId != null) {
+                        // Signed for a request: it now belongs to the fan who asked for it
+                        Text(
+                            text = "Sent to the fan who requested it",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
 
                     OutlinedButton(
                         onClick = onNavigateToFeed,

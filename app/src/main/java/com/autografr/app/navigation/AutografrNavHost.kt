@@ -168,6 +168,12 @@ fun AutografrNavHost(
         composable<Screen.FanProfile> {
             FanProfileScreen(
                 onNavigateToEdit = { navController.navigate(Screen.EditProfile) },
+                onSignedOut = {
+                    // Drop the whole back stack so Back can't return to a signed-in screen
+                    navController.navigate(Screen.Login) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
                 onNavigateToPhoto = { id ->
                     navController.navigate(Screen.ListingDetail(photoId = id))
                 },

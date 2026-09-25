@@ -1,5 +1,6 @@
 package com.autografr.app.ui.screen.share
 
+import com.autografr.app.usecase.auth.GetCurrentUserUseCase
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -18,15 +19,19 @@ import javax.inject.Inject
 data class ShareUiState(
     val isLoading: Boolean = false,
     val photo: SignedPhoto? = null,
-    val error: String? = null
+    val error: String? = null,
+    val currentUserId: String? = null
 )
 
 @HiltViewModel
 class ShareViewModel @Inject constructor(
-    private val getPhotoUseCase: GetPhotoUseCase
+    private val getPhotoUseCase: GetPhotoUseCase,
+    getCurrentUserUseCase: GetCurrentUserUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ShareUiState())
+    private val _uiState = MutableStateFlow(
+        ShareUiState(currentUserId = getCurrentUserUseCase.getCurrentUserId())
+    )
     val uiState: StateFlow<ShareUiState> = _uiState.asStateFlow()
 
     fun loadPhoto(photoId: String) {

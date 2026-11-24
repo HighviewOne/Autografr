@@ -22,6 +22,25 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Release signing with the Play upload key. Nothing secret lives in the repo: the
+    // password comes from AUTOGRAFR_KEYSTORE_PASSWORD. Without it, release builds come
+    // out unsigned as before.
+    val keystorePassword = System.getenv("AUTOGRAFR_KEYSTORE_PASSWORD")
+    signingConfigs {
+        if (keystorePassword != null) {
+            create("upload") {
+                storeFile = file(
+                    System.getenv("AUTOGRAFR_KEYSTORE")
+                        ?: "${System.getProperty("user.home")}/Documents/android-keys/autografr-upload.jks"
+                )
+                storePassword = keystorePassword
+                keyAlias = System.getenv("AUTOGRAFR_KEY_ALIAS") ?: "autografr"
+                // keytool's default PKCS12 store uses the same password for the key.
+                keyPassword = System.getenv("AUTOGRAFR_KEY_PASSWORD") ?: keystorePassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // `./gradlew installDebug -PuseFirebaseEmulators=true` points the app at the local
@@ -32,6 +51,7 @@ android {
         }
         release {
             buildConfigField("boolean", "USE_FIREBASE_EMULATORS", "false")
+            if (keystorePassword != null) signingConfig = signingConfigs.getByName("upload")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

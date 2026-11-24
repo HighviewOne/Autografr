@@ -23,3 +23,7 @@ rules-tests/node_modules/
 rules-tests/*.log
 rules-tests/firestore.rules
 rules-tests/storage.rules
+
+# Local secrets (Gemini API key etc.)
+.env
+.env.*

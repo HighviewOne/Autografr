@@ -1,6 +1,7 @@
 package com.autografr.app.data.ai
 
 import android.graphics.BitmapFactory
+import android.util.Log
 import com.autografr.app.data.image.ImageScaler
 import com.autografr.app.di.IoDispatcher
 import com.autografr.app.domain.model.SignedPhoto
@@ -37,6 +38,8 @@ class GeminiListingAssistant @Inject constructor(
 ) : ListingAssistant {
 
     private companion object {
+        const val TAG = "GeminiListing"
+
         // Fast, low-cost model. Copy for one photo needs no heavier reasoning.
         const val MODEL_NAME = "gemini-4-hydrogen"
 
@@ -108,6 +111,7 @@ class GeminiListingAssistant @Inject constructor(
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
+        Log.w(TAG, "Listing suggestion failed for photo ${photo.id}", e)
         Result.error("Couldn't write a suggestion right now. You can still fill it in yourself.", e)
     }
 

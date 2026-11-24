@@ -123,8 +123,18 @@ One-time setup: Firebase Console → **AI Logic** → Get started → choose the
 **Gemini Developer API**. Usage is billed to the Firebase project's Cloud billing
 account. Set a spend cap in AI Studio → Spend for the project.
 
-Under AI Logic → Settings, App Check enforcement for AI Logic is a separate switch
-from Firestore/Storage. Leave it off while the app is sideloaded (same reason as below).
+**Unlike Firestore and Storage, AI Logic enforces App Check** (Console → App Check →
+APIs shows "Firebase AI Logic: Basic – Enforced"). Every install needs a valid App Check token:
+
+- **Debug builds:** add each device's debug token under Console → App Check → Apps →
+  `com.autografr.app` → ⋮ → Manage debug tokens. The token is printed in logcat
+  ("Enter this debug secret into the allow list…") and changes if the app is
+  uninstalled or its data cleared.
+- **Release builds:** register Play Integrity for the app (needs the signing
+  certificate's SHA-256) before testers can use the Gemini button.
+
+If App Check fails, the button shows "Couldn't write a suggestion right now" and
+logcat has the cause under the `GeminiListing` tag.
 
 #### Celebrity verification
 

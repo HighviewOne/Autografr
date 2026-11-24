@@ -35,6 +35,7 @@
 | **Marketplace** | Browse, list, and buy signed photos (no payment processing yet — see Known gaps) |
 | **Feed** | Discover trending autographs and featured celebrities |
 | **Social sharing** | Share signed photos directly to social media |
+| **Listing writer** | "Suggest with Gemini" drafts a listing title and description from the signed photo (Firebase AI Logic) |
 
 ## Tech Stack
 
@@ -110,6 +111,20 @@ cd rules-tests
 npm install
 npm test        # needs Java 21+ on PATH for the emulator
 ```
+
+#### Gemini (Firebase AI Logic)
+
+The Create Listing screen's "Suggest with Gemini" button calls Gemini through
+**Firebase AI Logic** (`firebase-ai`, `GenerativeBackend.googleAI()`), in
+`data/ai/GeminiListingAssistant.kt`. The app ships **no Gemini API key**: Firebase
+holds it server-side and requests carry the app's App Check token.
+
+One-time setup: Firebase Console → **AI Logic** → Get started → choose the
+**Gemini Developer API**. Usage is billed to the Firebase project's Cloud billing
+account. Set a spend cap in AI Studio → Spend for the project.
+
+Under AI Logic → Settings, App Check enforcement for AI Logic is a separate switch
+from Firestore/Storage. Leave it off while the app is sideloaded (same reason as below).
 
 #### Celebrity verification
 

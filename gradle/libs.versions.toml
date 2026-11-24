@@ -10,7 +10,7 @@ navigationCompose = "2.8.5"
 hilt = "2.53.1"
 hiltNavigationCompose = "1.2.0"
 room = "2.6.1"
-firebaseBom = "33.7.0"
+firebaseBom = "33.16.0"
 googleServices = "4.4.2"
 coil = "3.0.4"
 camerax = "1.4.1"
@@ -56,6 +56,7 @@ firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-fires
 firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage-ktx" }
 firebase-appcheck-playintegrity = { group = "com.google.firebase", name = "firebase-appcheck-playintegrity" }
 firebase-appcheck-debug = { group = "com.google.firebase", name = "firebase-appcheck-debug" }
+firebase-ai = { group = "com.google.firebase", name = "firebase-ai" }
 
 # Coil
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }

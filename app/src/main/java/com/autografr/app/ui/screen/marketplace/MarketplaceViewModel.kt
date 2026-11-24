@@ -3,12 +3,14 @@ package com.autografr.app.ui.screen.marketplace
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autografr.app.domain.model.SignedPhoto
+import com.autografr.app.domain.repository.ListingSuggestion
 import com.autografr.app.domain.util.Result
 import com.autografr.app.usecase.auth.GetCurrentUserUseCase
 import com.autografr.app.usecase.marketplace.CreateListingUseCase
 import com.autografr.app.usecase.marketplace.GetListingsUseCase
 import com.autografr.app.usecase.marketplace.GetTrendingUseCase
 import com.autografr.app.usecase.marketplace.PurchaseListingUseCase
+import com.autografr.app.usecase.marketplace.SuggestListingUseCase
 import com.autografr.app.usecase.photo.GetPhotoUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +27,10 @@ data class MarketplaceUiState(
     val trending: List<SignedPhoto> = emptyList(),
     val selectedPhoto: SignedPhoto? = null,
     val purchaseSuccess: Boolean = false,
-    val currentUserId: String? = null
+    val currentUserId: String? = null,
+    val isSuggesting: Boolean = false,
+    // Set when Gemini returns copy; the screen copies it into its fields, then clears it.
+    val suggestion: ListingSuggestion? = null
 )
 
 @HiltViewModel
@@ -35,7 +40,8 @@ class MarketplaceViewModel @Inject constructor(
     private val createListingUseCase: CreateListingUseCase,
     private val purchaseListingUseCase: PurchaseListingUseCase,
     private val getPhotoUseCase: GetPhotoUseCase,
-    private val getCurrentUserUseCase: GetCurrentUserUseCase
+    private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val suggestListingUseCase: SuggestListingUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -104,6 +110,28 @@ class MarketplaceViewModel @Inject constructor(
                 is Result.Loading -> {}
             }
         }
+    }
+
+    /** Asks Gemini for a draft title and description for the photo loaded by [loadPhotoDetail]. */
+    fun suggestListing() {
+        val photo = _uiState.value.selectedPhoto ?: return
+        if (_uiState.value.isSuggesting) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSuggesting = true) }
+            when (val result = suggestListingUseCase(photo)) {
+                is Result.Success -> {
+                    _uiState.update { it.copy(isSuggesting = false, suggestion = result.data) }
+                }
+                is Result.Error -> {
+                    _uiState.update { it.copy(isSuggesting = false, error = result.message) }
+                }
+                is Result.Loading -> {}
+            }
+        }
+    }
+
+    fun consumeSuggestion() {
+        _uiState.update { it.copy(suggestion = null) }
     }
 
     fun clearError() {

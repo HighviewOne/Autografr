@@ -98,6 +98,7 @@ dependencies {
     implementation(libs.firebase.storage.ktx)
     implementation(libs.firebase.appcheck.playintegrity)
     debugImplementation(libs.firebase.appcheck.debug)
+    implementation(libs.firebase.ai)
 
     // Coil
     implementation(libs.coil.compose)

@@ -1,0 +1,29 @@
+Autografr gets you an autograph signed by hand, on a photo, by the celebrity themselves.
+
+Fans send a request with a photo and a short message. The celebrity draws their signature right on the photo. The signed photo goes into your collection.
+
+FOR FANS
+Browse featured celebrities and trending autographs.
+Send an autograph request with your own photo, from the camera or your gallery.
+Track your requests from sent to signed.
+Keep every signed photo in your collection.
+List a signed photo in the marketplace, or find one someone else listed.
+Share signed photos to your social media.
+
+FOR CELEBRITIES
+Only verified celebrities can sign, so nobody can sign under someone else's name.
+Work through requests in a queue.
+Sign with 5 brushes (pen, marker, calligraphy, glow and eraser), with undo, colors and sizes.
+Every signature is drawn by you, on that photo, for that fan.
+
+LISTING HELP
+When you list a signed photo, you can tap Suggest with Gemini to draft a title and description. It only runs when you tap it, and you can edit or discard the draft.
+
+PRIVACY
+No ads. No tracking. No analytics.
+The app only sees the photos you pick, through Android's photo picker.
+Photos are re-encoded on your phone before upload, which strips GPS location.
+You can delete your account in the app any time (My Profile, menu, Delete account).
+
+Privacy policy: https://highviewone.github.io/Autografr/privacy.html
+Questions: apps@mirarver.com

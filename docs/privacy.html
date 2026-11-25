@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Autografr Privacy Policy</title>
+  <meta name="description" content="How the Autografr Android app collects, uses and protects your information." />
+  <style>
+    :root {
+      --ink: #0E0D0B; --paper: #F2EDE2; --muted: #5E584F; --foil: #8A6A1F;
+      --line: rgba(14, 13, 11, 0.14); --bg: #F2EDE2;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --ink: #F2EDE2; --muted: #B7AFA2; --foil: #E5C97A; --line: rgba(242, 237, 226, 0.16); --bg: #0E0D0B; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font: 16px/1.65 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    main { max-width: 720px; margin: 0 auto; padding: 48px 16px 80px; }
+    h1 { font-family: Fraunces, Georgia, serif; font-size: 2.1rem; line-height: 1.2; margin: 0 0 4px; }
+    h2 { font-family: Fraunces, Georgia, serif; font-size: 1.3rem; margin: 40px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .meta { color: var(--muted); margin: 0 0 24px; }
+    a { color: var(--foil); }
+    ul { padding-left: 1.25rem; }
+    li { margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.95rem; }
+    th, td { text-align: left; vertical-align: top; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); }
+    th { font-weight: 600; }
+    @media (max-width: 560px) {
+      table, thead, tbody, tr, th, td { display: block; }
+      thead { display: none; }
+      tr { padding: 8px 0; border-bottom: 1px solid var(--line); }
+      td { border: 0; padding: 2px 0; }
+      td:first-child { font-weight: 600; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Autografr Privacy Policy</h1>
+  <p class="meta">Last updated: November 25, 2026</p>
+
+  <p>Autografr is an Android app where verified celebrities sign photos by hand and fans collect and trade the
+  signed photos. The app is published by <strong>MirarVer</strong> ("we", "us"). This policy explains what
+  information the app collects, why, who it is shared with, and the choices you have.</p>
+
+  <p>Questions or requests: <a href="mailto:apps@mirarver.com">apps@mirarver.com</a>.</p>
+
+  <h2>Information we collect</h2>
+  <table>
+    <thead><tr><th>What</th><th>Details</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Account information</td><td>Email address, password (handled by Firebase Authentication; we never see it), display name, and whether you are a fan or a celebrity.</td><td>To create your account, sign you in, and show your name to other users.</td></tr>
+      <tr><td>Profile</td><td>Optional profile photo and bio. For celebrities: category, verification status, autograph price, and social links you add.</td><td>To show your public profile in the app.</td></tr>
+      <tr><td>Photos and signatures</td><td>Photos you take or choose, the signature you draw, and the finished signed photo with its thumbnail.</td><td>This is the core of the app: requesting, signing, collecting and listing autographs.</td></tr>
+      <tr><td>Requests and listings</td><td>Autograph requests and their messages, listing titles, descriptions, prices, likes and views.</td><td>To run requests between fans and celebrities and the marketplace.</td></tr>
+      <tr><td>Transaction records</td><td>Who bought or sold what, the amount, and when.</td><td>To record ownership of signed photos and show your history.</td></tr>
+      <tr><td>App integrity data</td><td>A token from Google Play Integrity (Firebase App Check) that confirms requests come from the genuine app.</td><td>To protect our servers and your data from abuse.</td></tr>
+    </tbody>
+  </table>
+  <p>We do <strong>not</strong> collect your location, contacts, or advertising ID. The app has no ads and no
+  third-party analytics or tracking. When you upload a photo, the app re-encodes it on your device, which removes
+  embedded metadata such as GPS location.</p>
+
+  <h2>Permissions the app asks for</h2>
+  <ul>
+    <li><strong>Camera</strong>: only when you choose to take a photo in the app.</li>
+    <li><strong>Photos</strong>: the app uses Android's photo picker, so it can only see the photos you choose to
+    share with it, not your whole library.</li>
+    <li><strong>Internet</strong>: to sync your account and photos.</li>
+  </ul>
+
+  <h2>AI writing suggestions</h2>
+  <p>When creating a listing, you can tap <em>Suggest with Gemini</em>. Only then, a reduced copy of that one
+  signed photo and the signer's name are sent to Google's Gemini model (through Firebase AI Logic) to draft a
+  title and description. The suggestion is a draft you can edit or discard. Google processes this request as
+  our service provider under the
+  <a href="https://ai.google.dev/gemini-api/terms">Gemini API Additional Terms of Service</a>. Nothing is sent
+  unless you tap the button.</p>
+
+  <h2>Who can see your information</h2>
+  <ul>
+    <li><strong>Other signed-in Autografr users</strong> can see your display name, profile photo and bio, signed
+    photos you list or own, and listing details. Autograph requests are visible to the fan who sent them and the
+    celebrity who received them.</li>
+    <li><strong>Service providers</strong>: we use Google Firebase (Authentication, Cloud Firestore, Cloud Storage,
+    App Check and AI Logic), operated by Google LLC, to store and process data on our behalf. See
+    <a href="https://firebase.google.com/support/privacy">Firebase privacy and security</a>.</li>
+    <li><strong>Legal reasons</strong>: we may disclose information if required by law, or to protect the rights,
+    property or safety of our users or others.</li>
+  </ul>
+  <p>We do not sell your personal information, and we do not share it for advertising.</p>
+
+  <h2>Security</h2>
+  <p>Data is encrypted in transit (HTTPS) and at rest on Google's servers. Access is limited by
+  security rules so that, for example, only you can change your profile and only the owner of a photo can
+  list it.</p>
+
+  <h2>How long we keep information</h2>
+  <p>We keep your information while your account is active. When you delete your account, we delete your
+  profile, photos and requests within 30 days. Signed photos that another user has bought belong to their
+  collection and may stay visible there with the signer's name. We may keep transaction records longer where the
+  law requires it.</p>
+
+  <h2>Your choices and deleting your account</h2>
+  <ul>
+    <li>You can edit your profile and remove your listings in the app at any time.</li>
+    <li>To delete your account and its data, email <a href="mailto:apps@mirarver.com">apps@mirarver.com</a> from
+    the email address on your account with the subject "Delete my account". We will confirm by email once
+    deletion is complete.</li>
+    <li>You can also ask us for a copy of your data, or to correct it, at the same address.</li>
+  </ul>
+  <p>If you live in California, the EU, the UK or another place with privacy laws, you may have additional rights
+  to access, correct, delete or object to the processing of your information. Contact us and we will respond
+  within the time the law requires.</p>
+
+  <h2>Children</h2>
+  <p>Autografr is not directed to children under 13, and we do not knowingly collect information from them. If
+  you believe a child under 13 has created an account, contact us and we will delete it.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>If we change this policy, we will update the date above and, for significant changes, let you know in the
+  app.</p>
+
+  <h2>Contact</h2>
+  <p>MirarVer, <a href="mailto:apps@mirarver.com">apps@mirarver.com</a></p>
+</main>
+</body>
+</html>

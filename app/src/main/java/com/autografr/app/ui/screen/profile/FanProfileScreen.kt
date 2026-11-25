@@ -19,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,6 +34,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -206,6 +209,7 @@ private fun DeleteAccountDialog(
 ) {
     // Deliberately not saveable: a password shouldn't outlive the dialog.
     var password by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = { if (!isDeleting) onDismiss() },
@@ -224,7 +228,19 @@ private fun DeleteAccountDialog(
                     label = { Text("Password") },
                     singleLine = true,
                     enabled = !isDeleting,
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (showPassword) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (showPassword) "Hide password" else "Show password"
+                            )
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     isError = error != null,
                     supportingText = error?.let { { Text(it) } },

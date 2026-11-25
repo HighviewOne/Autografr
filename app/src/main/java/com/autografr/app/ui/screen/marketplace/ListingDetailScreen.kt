@@ -28,7 +28,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.autografr.app.domain.model.ReportTargetType
+import com.autografr.app.ui.component.BlockTarget
 import com.autografr.app.ui.component.ErrorDialog
+import com.autografr.app.ui.component.ReportTarget
+import com.autografr.app.ui.component.SafetyMenu
 import com.autografr.app.ui.component.LoadingIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,6 +57,17 @@ fun ListingDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    photo?.let {
+                        SafetyMenu(
+                            report = ReportTarget(ReportTargetType.PHOTO, it.id, it.ownerId, "Report photo"),
+                            blockTargets = listOf(
+                                BlockTarget(it.celebrityId, it.celebrityName, fallbackName = "celebrity"),
+                                BlockTarget(it.ownerId, if (it.ownerId == it.celebrityId) it.celebrityName else "", fallbackName = "seller")
+                            )
+                        )
                     }
                 }
             )

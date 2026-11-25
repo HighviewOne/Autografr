@@ -32,7 +32,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.autografr.app.domain.model.RequestStatus
+import com.autografr.app.domain.model.ReportTargetType
+import com.autografr.app.ui.component.BlockTarget
 import com.autografr.app.ui.component.ErrorDialog
+import com.autografr.app.ui.component.ReportTarget
+import com.autografr.app.ui.component.SafetyMenu
+import com.autografr.app.ui.screen.safety.SafetyViewModel
 import com.autografr.app.ui.component.LoadingIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,7 +46,8 @@ fun RequestDetailScreen(
     requestId: String,
     onAcceptAndSign: (String, String) -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: RequestViewModel = hiltViewModel()
+    viewModel: RequestViewModel = hiltViewModel(),
+    safetyViewModel: SafetyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val request = uiState.selectedRequest
@@ -57,6 +63,19 @@ fun RequestDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    request?.let { req ->
+                        // The other person on the request: the fan if I'm the celebrity, and vice versa.
+                        val iAmCelebrity = req.celebrityId == safetyViewModel.currentUserId
+                        val otherId = if (iAmCelebrity) req.fanId else req.celebrityId
+                        val otherName = if (iAmCelebrity) req.fanName else req.celebrityName
+                        SafetyMenu(
+                            report = ReportTarget(ReportTargetType.REQUEST, req.id, otherId, "Report request"),
+                            blockTargets = listOf(BlockTarget(otherId, otherName, fallbackName = if (iAmCelebrity) "fan" else "celebrity")),
+                            viewModel = safetyViewModel
+                        )
                     }
                 }
             )

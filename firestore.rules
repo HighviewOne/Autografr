@@ -68,6 +68,44 @@ service cloud.firestore {
       // Account deletion (Play requires it in the app). The app re-authenticates the user,
       // writes account_deletions/{uid}, then deletes this doc and the Auth account.
       allow delete: if request.auth.uid == userId;
+
+      // ── users/{userId}/blocked/{blockedId} ──────────────────────────────────
+      // A user's own block list (Play's user-generated content policy requires
+      // in-app blocking). Private to its owner. Blocking hides the other user's
+      // photos, listings and profile in the app; a celebrity's block also stops
+      // that fan from sending new requests (see autograph_requests create).
+      match /blocked/{blockedId} {
+        allow read, delete: if request.auth.uid == userId;
+        allow create, update: if request.auth.uid == userId
+          && blockedId != userId
+          && request.resource.data.keys().hasOnly(['displayName', 'blockedAt'])
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() <= 100
+          && request.resource.data.blockedAt == request.time;
+      }
+    }
+
+    // ── reports/{reportId} ────────────────────────────────────────────────────
+    // Reports of objectionable photos, users or requests (Play's user-generated
+    // content policy requires in-app reporting). Write-only from the app: the
+    // reporter can't read, change or delete a report. Reviewed in the Firebase
+    // Console (README: "Reports and blocks").
+    match /reports/{reportId} {
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['reporterId', 'targetType', 'targetId',
+                                                  'targetUserId', 'reason', 'details', 'createdAt'])
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.targetType in ['PHOTO', 'USER', 'REQUEST']
+        && request.resource.data.targetId is string
+        && request.resource.data.targetId.size() > 0
+        && request.resource.data.targetId.size() <= 128
+        && request.resource.data.targetUserId is string
+        && request.resource.data.targetUserId != request.auth.uid
+        && request.resource.data.reason in ['SPAM', 'HARASSMENT', 'SEXUAL', 'VIOLENCE',
+                                            'HATE', 'IMPERSONATION', 'SCAM', 'OTHER']
+        && request.resource.data.details is string
+        && request.resource.data.details.size() <= 500
+        && request.resource.data.createdAt == request.time;
     }
 
     // ── account_deletions/{userId} ────────────────────────────────────────────
@@ -169,8 +207,9 @@ service cloud.firestore {
     // Only the fan and the celebrity on a request can read it.
     //
     // Fans create requests; fanId must match the caller so they can't impersonate.
-    // Requests can only go to a verified celebrity who is accepting requests, at
-    // exactly that celebrity's listed price. Initial status must be PENDING.
+    // Requests can only go to a verified celebrity who is accepting requests and
+    // hasn't blocked the fan, at exactly that celebrity's listed price. Initial
+    // status must be PENDING.
     //
     // Two update paths (only status, signedPhotoId and updatedAt ever change):
     //   FAN       — can only cancel a PENDING request (PENDING → CANCELLED).
@@ -206,6 +245,7 @@ service cloud.firestore {
         && request.resource.data.status == 'PENDING'
         && request.resource.data.id == requestId
         && request.resource.data.get('signedPhotoId', null) == null
+        && !exists(/databases/$(database)/documents/users/$(request.resource.data.celebrityId)/blocked/$(request.auth.uid))
         && celebrityTakesRequestAt(userDoc(request.resource.data.celebrityId),
                                    request.resource.data.price);
 

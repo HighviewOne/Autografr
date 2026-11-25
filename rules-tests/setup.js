@@ -65,5 +65,7 @@ export async function seed(env) {
     await put('autograph_requests/accepted', request('accepted', { status: 'ACCEPTED' }));
     await put('autograph_requests/done', request('done', { status: 'COMPLETED' }));
     await put('signed_photos/forAccepted', photo('forAccepted', { ownerId: 'fan', requestId: 'accepted' }));
+    // celeb has blocked buyer
+    await put('users/celeb/blocked/buyer', { displayName: 'buyer', blockedAt: new Date(0) });
   });
 }

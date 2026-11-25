@@ -8,11 +8,13 @@ import com.autografr.app.domain.model.User
 import com.autografr.app.domain.model.UserRole
 import com.autografr.app.usecase.auth.GetCurrentUserUseCase
 import com.autografr.app.usecase.marketplace.GetTrendingUseCase
+import com.autografr.app.domain.repository.SafetyRepository
 import com.autografr.app.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -28,7 +30,8 @@ data class FeedUiState(
 class FeedViewModel @Inject constructor(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getTrendingUseCase: GetTrendingUseCase,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val safetyRepository: SafetyRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
@@ -47,7 +50,9 @@ class FeedViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            userRepository.getVerifiedCelebrities().collect { celebrities ->
+            combine(userRepository.getVerifiedCelebrities(), safetyRepository.observeBlockedIds()) { celebs, blocked ->
+                celebs.filterNot { it.user.id in blocked }
+            }.collect { celebrities ->
                 _uiState.update { it.copy(featuredCelebrities = celebrities, isLoading = false) }
             }
         }

@@ -148,6 +148,24 @@ their Storage folders. Leave photos another user bought. Deletion requests that
 arrive by email to apps@mirarver.com get the same treatment (also delete the Auth
 user in the console). A Cloud Function can automate this once the project is on Blaze.
 
+#### Reports and blocks
+
+Play's user-generated content policy requires in-app reporting and blocking, and that reports get acted on.
+
+- **Report**: the ⋮ menu on a listing, a celebrity profile or a request opens a reason list (spam, harassment,
+  sexual content, violence, hate, impersonation, scam, other) plus optional details. Each report is a doc in
+  `reports/`: `reporterId`, `targetType` (`PHOTO`/`USER`/`REQUEST`), `targetId`, `targetUserId`, `reason`,
+  `details`, `createdAt`. The app can only create them; nobody can read them from the app.
+- **Block**: the same menu blocks the other person. Blocks live in `users/{uid}/blocked/{blockedUid}` (private to
+  the owner). Blocked users' photos, listings and profile are hidden, and their pending requests drop out of a
+  celebrity's queue. `firestore.rules` also stops a fan a celebrity blocked from sending new requests. Users
+  unblock from My Profile > Blocked users.
+- **Reviewing reports** (until there's a Cloud Function that emails new ones): check Firebase Console → Firestore
+  → `reports` at least weekly, newest first. Remove content that breaks the rules (delete the `signed_photos` doc
+  and its Storage files), and for repeat or serious cases delete the user (Authentication → user → Delete, then
+  their `users` doc). Delete the report once handled. Illegal content: remove it right away and report it as
+  the law requires.
+
 #### Celebrity verification
 
 Only celebrities with `verificationStatus: "VERIFIED"` can save autographs or

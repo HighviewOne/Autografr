@@ -27,6 +27,8 @@ class FirestoreDataSource @Inject constructor(
         const val REQUESTS_COLLECTION = "autograph_requests"
         const val TRANSACTIONS_COLLECTION = "transactions"
         const val ACCOUNT_DELETIONS_COLLECTION = "account_deletions"
+        const val REPORTS_COLLECTION = "reports"
+        const val BLOCKED_SUBCOLLECTION = "blocked"
     }
 
     // Users
@@ -107,6 +109,75 @@ class FirestoreDataSource @Inject constructor(
                 trySend(users)
             }
         awaitClose { listener.remove() }
+    }
+
+    // Blocking and reports
+
+    /** Emits (blockedUserId, displayName) pairs from users/{userId}/blocked. */
+    fun observeBlocked(userId: String): Flow<List<Pair<String, String>>> = callbackFlow {
+        val listener = firestore.collection(USERS_COLLECTION)
+            .document(userId)
+            .collection(BLOCKED_SUBCOLLECTION)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w("FirestoreDataSource", "Snapshot listener error", error)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.documents?.map { it.id to (it.getString("displayName") ?: "") } ?: emptyList())
+            }
+        awaitClose { listener.remove() }
+    }
+
+    suspend fun blockUser(userId: String, blockedId: String, displayName: String) {
+        firestore.collection(USERS_COLLECTION)
+            .document(userId)
+            .collection(BLOCKED_SUBCOLLECTION)
+            .document(blockedId)
+            .set(mapOf("displayName" to displayName.take(100), "blockedAt" to FieldValue.serverTimestamp()))
+            .await()
+    }
+
+    /** Deletes the user's whole block list (account deletion; Firestore keeps subcollections otherwise). */
+    suspend fun deleteBlockedList(userId: String) {
+        val docs = firestore.collection(USERS_COLLECTION)
+            .document(userId)
+            .collection(BLOCKED_SUBCOLLECTION)
+            .get()
+            .await()
+        docs.documents.forEach { it.reference.delete().await() }
+    }
+
+    suspend fun unblockUser(userId: String, blockedId: String) {
+        firestore.collection(USERS_COLLECTION)
+            .document(userId)
+            .collection(BLOCKED_SUBCOLLECTION)
+            .document(blockedId)
+            .delete()
+            .await()
+    }
+
+    suspend fun createReport(
+        reporterId: String,
+        targetType: String,
+        targetId: String,
+        targetUserId: String,
+        reason: String,
+        details: String
+    ) {
+        firestore.collection(REPORTS_COLLECTION)
+            .document()
+            .set(
+                mapOf(
+                    "reporterId" to reporterId,
+                    "targetType" to targetType,
+                    "targetId" to targetId,
+                    "targetUserId" to targetUserId,
+                    "reason" to reason,
+                    "details" to details.take(500),
+                    "createdAt" to FieldValue.serverTimestamp()
+                )
+            )
+            .await()
     }
 
     // Signed Photos

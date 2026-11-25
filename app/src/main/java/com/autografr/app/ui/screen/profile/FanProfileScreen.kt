@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.autografr.app.ui.component.BlockedUsersDialog
 import com.autografr.app.ui.component.UserAvatar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,6 +69,11 @@ fun FanProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var menuOpen by remember { mutableStateOf(false) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
+    var showBlockedUsers by rememberSaveable { mutableStateOf(false) }
+
+    if (showBlockedUsers) {
+        BlockedUsersDialog(onDismiss = { showBlockedUsers = false })
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadCollection()
@@ -108,6 +114,13 @@ fun FanProfileScreen(
                         Icon(Icons.Default.MoreVert, contentDescription = "More options")
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Blocked users") },
+                            onClick = {
+                                menuOpen = false
+                                showBlockedUsers = true
+                            }
+                        )
                         DropdownMenuItem(
                             text = { Text("Delete account", color = MaterialTheme.colorScheme.error) },
                             onClick = {

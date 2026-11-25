@@ -38,7 +38,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.autografr.app.domain.model.VerificationStatus
+import com.autografr.app.domain.model.ReportTargetType
+import com.autografr.app.ui.component.BlockTarget
 import com.autografr.app.ui.component.LoadingIndicator
+import com.autografr.app.ui.component.ReportTarget
+import com.autografr.app.ui.component.SafetyMenu
+import com.autografr.app.ui.screen.safety.SafetyViewModel
+import androidx.compose.material3.OutlinedButton
 import com.autografr.app.ui.component.UserAvatar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,9 +54,12 @@ fun CelebrityProfileScreen(
     onNavigateToRequest: () -> Unit,
     onNavigateToPhoto: (String) -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: ProfileViewModel = hiltViewModel()
+    viewModel: ProfileViewModel = hiltViewModel(),
+    safetyViewModel: SafetyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val blockedUsers by safetyViewModel.blockedUsers.collectAsStateWithLifecycle()
+    val isBlocked = blockedUsers.any { it.userId == celebrityId }
 
     LaunchedEffect(celebrityId) {
         viewModel.loadCelebrityProfile(celebrityId)
@@ -63,6 +72,15 @@ fun CelebrityProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    uiState.celebrity?.let {
+                        SafetyMenu(
+                            report = ReportTarget(ReportTargetType.USER, celebrityId, celebrityId, "Report profile"),
+                            blockTargets = listOf(BlockTarget(celebrityId, it.user.displayName, fallbackName = "celebrity")),
+                            viewModel = safetyViewModel
+                        )
                     }
                 }
             )
@@ -125,6 +143,22 @@ fun CelebrityProfileScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                if (isBlocked) {
+                    Text(
+                        text = "You blocked ${celebrity.user.displayName}. Their photos and listings are hidden.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = { safetyViewModel.unblock(celebrityId, celebrity.user.displayName) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Unblock")
+                    }
+                    return@Column
                 }
 
                 Button(

@@ -100,6 +100,7 @@ class AuthRepositoryImpl @Inject constructor(
             val role = firestoreDataSource.getUser(userId)?.role ?: "FAN"
             firestoreDataSource.markAccountDeletion(userId, role)
             storageDataSource.deleteProfileImage(userId)
+            firestoreDataSource.deleteBlockedList(userId)
             firestoreDataSource.deleteUser(userId)
             authDataSource.deleteCurrentUser()
             userDao.deleteUser(userId)

@@ -183,6 +183,9 @@ describe('autograph_requests', () => {
   test('request to a celebrity who is not accepting denied', () =>
     assertFails(setDoc(doc(as('fan'), 'autograph_requests/r'), request('r', { celebrityId: 'closed', price: 100 }))));
 
+  test('fan the celebrity blocked cannot request', () =>
+    assertFails(setDoc(doc(as('buyer'), 'autograph_requests/r'), request('r', { fanId: 'buyer' }))));
+
   test('cannot request on behalf of another fan', () =>
     assertFails(setDoc(doc(as('fan'), 'autograph_requests/r'), request('r', { fanId: 'buyer' }))));
 
@@ -249,5 +252,89 @@ describe('transactions', () => {
   test('transactions are append-only', async () => {
     await assertSucceeds(buy(as('buyer'), transaction('t1')));
     await assertFails(updateDoc(doc(as('buyer'), 'transactions/t1'), { amount: 0 }));
+  });
+});
+
+describe('blocked', () => {
+  const block = (name = 'Fan') => ({ displayName: name, blockedAt: serverTimestamp() });
+
+  test('user blocks someone', () =>
+    assertSucceeds(setDoc(doc(as('fan'), 'users/fan/blocked/celeb'), block('Celeb'))));
+
+  test('cannot write to someone else\'s block list', () =>
+    assertFails(setDoc(doc(as('fan'), 'users/celeb/blocked/fan'), block())));
+
+  test('cannot block yourself', () =>
+    assertFails(setDoc(doc(as('fan'), 'users/fan/blocked/fan'), block())));
+
+  test('client timestamp rejected', () =>
+    assertFails(setDoc(doc(as('fan'), 'users/fan/blocked/celeb'), { displayName: 'C', blockedAt: new Date() })));
+
+  test('extra fields rejected', () =>
+    assertFails(setDoc(doc(as('fan'), 'users/fan/blocked/celeb'), { ...block(), note: 'x' })));
+
+  test('owner reads and unblocks', async () => {
+    await assertSucceeds(getDoc(doc(as('celeb'), 'users/celeb/blocked/buyer')));
+    await assertSucceeds(deleteDoc(doc(as('celeb'), 'users/celeb/blocked/buyer')));
+  });
+
+  test('others cannot see a block list', () =>
+    assertFails(getDoc(doc(as('buyer'), 'users/celeb/blocked/buyer'))));
+
+  test('others cannot remove a block', () =>
+    assertFails(deleteDoc(doc(as('buyer'), 'users/celeb/blocked/buyer'))));
+
+  test('after unblocking, the fan can request again', async () => {
+    await deleteDoc(doc(as('celeb'), 'users/celeb/blocked/buyer'));
+    await assertSucceeds(setDoc(doc(as('buyer'), 'autograph_requests/r'), request('r', { fanId: 'buyer' })));
+  });
+});
+
+describe('reports', () => {
+  const report = (extra = {}) => ({
+    reporterId: 'fan', targetType: 'PHOTO', targetId: 'listed', targetUserId: 'celeb',
+    reason: 'SPAM', details: '', createdAt: serverTimestamp(), ...extra,
+  });
+
+  test('user reports a photo', () =>
+    assertSucceeds(setDoc(doc(as('fan'), 'reports/x'), report())));
+
+  test('user reports another user with details', () =>
+    assertSucceeds(setDoc(doc(as('fan'), 'reports/x'),
+      report({ targetType: 'USER', targetId: 'celeb', reason: 'HARASSMENT', details: 'Rude messages' }))));
+
+  test('cannot report as someone else', () =>
+    assertFails(setDoc(doc(as('fan'), 'reports/x'), report({ reporterId: 'buyer' }))));
+
+  test('cannot report yourself', () =>
+    assertFails(setDoc(doc(as('fan'), 'reports/x'), report({ targetUserId: 'fan' }))));
+
+  test('unknown reason rejected', () =>
+    assertFails(setDoc(doc(as('fan'), 'reports/x'), report({ reason: 'BORED' }))));
+
+  test('unknown target type rejected', () =>
+    assertFails(setDoc(doc(as('fan'), 'reports/x'), report({ targetType: 'LISTING' }))));
+
+  test('details over 500 characters rejected', () =>
+    assertFails(setDoc(doc(as('fan'), 'reports/x'), report({ details: 'x'.repeat(501) }))));
+
+  test('client timestamp rejected', () =>
+    assertFails(setDoc(doc(as('fan'), 'reports/x'), report({ createdAt: new Date() }))));
+
+  test('extra fields rejected', () =>
+    assertFails(setDoc(doc(as('fan'), 'reports/x'), report({ priority: 'high' }))));
+
+  test('signed-out users cannot report', () =>
+    assertFails(setDoc(doc(env.unauthenticatedContext().firestore(), 'reports/x'), report())));
+
+  test('reports are unreadable, even to the reporter', async () => {
+    await setDoc(doc(as('fan'), 'reports/x'), report());
+    await assertFails(getDoc(doc(as('fan'), 'reports/x')));
+  });
+
+  test('reports cannot be changed or deleted', async () => {
+    await setDoc(doc(as('fan'), 'reports/x'), report());
+    await assertFails(updateDoc(doc(as('fan'), 'reports/x'), { reason: 'OTHER' }));
+    await assertFails(deleteDoc(doc(as('fan'), 'reports/x')));
   });
 });

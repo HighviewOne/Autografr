@@ -34,6 +34,10 @@ class FirebaseAuthDataSource @Inject constructor(
         return auth.createUserWithEmailAndPassword(email, password).await().user
     }
 
+    suspend fun sendPasswordReset(email: String) {
+        auth.sendPasswordResetEmail(email).await()
+    }
+
     fun signOut() {
         auth.signOut()
     }

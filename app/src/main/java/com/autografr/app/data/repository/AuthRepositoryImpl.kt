@@ -11,6 +11,7 @@ import com.autografr.app.domain.model.User
 import com.autografr.app.domain.repository.AuthRepository
 import com.autografr.app.domain.util.Result
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -110,6 +111,23 @@ class AuthRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Account deletion failed", e)
             Result.error("Couldn't delete your account. Check your connection and try again.", e)
+        }
+    }
+
+    override suspend fun sendPasswordReset(email: String): Result<Unit> {
+        return try {
+            authDataSource.sendPasswordReset(email)
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: FirebaseAuthInvalidUserException) {
+            // Same answer whether or not the account exists.
+            Result.success(Unit)
+        } catch (e: FirebaseAuthInvalidCredentialsException) {
+            Result.error("That doesn't look like an email address.", e)
+        } catch (e: Exception) {
+            Log.e(TAG, "Password reset failed", e)
+            Result.error("Couldn't send the email. Check your connection and try again.", e)
         }
     }
 

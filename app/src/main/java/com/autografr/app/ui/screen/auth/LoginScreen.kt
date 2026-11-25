@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -39,6 +42,7 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    var showResetDialog by rememberSaveable { mutableStateOf(false) }
 
     Scaffold { padding ->
         Column(
@@ -92,7 +96,14 @@ fun LoginScreen(
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            TextButton(
+                onClick = { showResetDialog = true },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text("Forgot password?")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = { viewModel.login(email, password, onLoginSuccess) },
@@ -113,6 +124,20 @@ fun LoginScreen(
             LoadingIndicator()
         }
 
+        if (showResetDialog) {
+            ForgotPasswordDialog(
+                initialEmail = email,
+                isSending = uiState.isSendingReset,
+                emailSent = uiState.resetEmailSent,
+                error = uiState.resetError,
+                onSend = viewModel::sendPasswordReset,
+                onDismiss = {
+                    showResetDialog = false
+                    viewModel.clearPasswordReset()
+                }
+            )
+        }
+
         uiState.error?.let { error ->
             ErrorDialog(
                 message = error,
@@ -120,4 +145,69 @@ fun LoginScreen(
             )
         }
     }
+}
+
+@Composable
+private fun ForgotPasswordDialog(
+    initialEmail: String,
+    isSending: Boolean,
+    emailSent: Boolean,
+    error: String?,
+    onSend: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var resetEmail by rememberSaveable { mutableStateOf(initialEmail.trim()) }
+
+    AlertDialog(
+        onDismissRequest = { if (!isSending) onDismiss() },
+        title = { Text(if (emailSent) "Check your email" else "Reset your password") },
+        text = {
+            if (emailSent) {
+                Text(
+                    "If an account uses $resetEmail, we sent it a link to set a new password. " +
+                        "It can take a few minutes, and it may land in spam."
+                )
+            } else {
+                Column {
+                    Text("Enter the email you signed up with and we'll send you a link to set a new password.")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = resetEmail,
+                        onValueChange = { resetEmail = it },
+                        label = { Text("Email") },
+                        singleLine = true,
+                        enabled = !isSending,
+                        isError = error != null,
+                        supportingText = error?.let { { Text(it) } },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Done
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (emailSent) {
+                TextButton(onClick = onDismiss) { Text("Done") }
+            } else {
+                TextButton(
+                    onClick = { onSend(resetEmail) },
+                    enabled = resetEmail.isNotBlank() && !isSending
+                ) {
+                    if (isSending) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Send link")
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            if (!emailSent) {
+                TextButton(onClick = onDismiss, enabled = !isSending) { Text("Cancel") }
+            }
+        }
+    )
 }

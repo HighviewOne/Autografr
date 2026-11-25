@@ -9,6 +9,7 @@ import com.autografr.app.usecase.auth.GetCurrentUserUseCase
 import com.autografr.app.usecase.auth.LoginUseCase
 import com.autografr.app.usecase.auth.LogoutUseCase
 import com.autografr.app.usecase.auth.RegisterUseCase
+import com.autografr.app.usecase.auth.SendPasswordResetUseCase
 import com.autografr.app.usecase.profile.UpdateProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +23,10 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val user: User? = null,
-    val isLoggedIn: Boolean = false
+    val isLoggedIn: Boolean = false,
+    val isSendingReset: Boolean = false,
+    val resetEmailSent: Boolean = false,
+    val resetError: String? = null
 )
 
 @HiltViewModel
@@ -31,7 +35,8 @@ class AuthViewModel @Inject constructor(
     private val registerUseCase: RegisterUseCase,
     private val logoutUseCase: LogoutUseCase,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
-    private val updateProfileUseCase: UpdateProfileUseCase
+    private val updateProfileUseCase: UpdateProfileUseCase,
+    private val sendPasswordResetUseCase: SendPasswordResetUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -97,6 +102,21 @@ class AuthViewModel @Inject constructor(
                 is Result.Loading -> {}
             }
         }
+    }
+
+    fun sendPasswordReset(email: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSendingReset = true, resetError = null) }
+            when (val result = sendPasswordResetUseCase(email)) {
+                is Result.Success -> _uiState.update { it.copy(isSendingReset = false, resetEmailSent = true) }
+                is Result.Error -> _uiState.update { it.copy(isSendingReset = false, resetError = result.message) }
+                is Result.Loading -> {}
+            }
+        }
+    }
+
+    fun clearPasswordReset() {
+        _uiState.update { it.copy(isSendingReset = false, resetEmailSent = false, resetError = null) }
     }
 
     fun logout() {

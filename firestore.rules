@@ -64,6 +64,22 @@ service cloud.firestore {
           || (resource.data.role == 'FAN' && request.resource.data.role == 'CELEBRITY'))
         && (request.resource.data.get('autographPrice', null) == null
           || request.resource.data.autographPrice >= 0);
+
+      // Account deletion (Play requires it in the app). The app re-authenticates the user,
+      // writes account_deletions/{uid}, then deletes this doc and the Auth account.
+      allow delete: if request.auth.uid == userId;
+    }
+
+    // ── account_deletions/{userId} ────────────────────────────────────────────
+    // Marker the app writes just before an account is deleted, so the owner can finish
+    // cleanup (unsold photos, requests) within the 30 days the privacy policy promises.
+    // Write-only from the app; read it in the Firebase Console.
+    match /account_deletions/{userId} {
+      allow create, update: if request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['uid', 'role', 'requestedAt'])
+        && request.resource.data.uid == userId
+        && request.resource.data.role is string
+        && request.resource.data.requestedAt == request.time;
     }
 
     // True if `photo` is being signed for an open request addressed to the caller,

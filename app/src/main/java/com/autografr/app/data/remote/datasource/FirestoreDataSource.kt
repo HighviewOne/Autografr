@@ -8,6 +8,7 @@ import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.FirebaseFirestoreException.Code
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +26,7 @@ class FirestoreDataSource @Inject constructor(
         const val PHOTOS_COLLECTION = "signed_photos"
         const val REQUESTS_COLLECTION = "autograph_requests"
         const val TRANSACTIONS_COLLECTION = "transactions"
+        const val ACCOUNT_DELETIONS_COLLECTION = "account_deletions"
     }
 
     // Users
@@ -65,6 +67,18 @@ class FirestoreDataSource @Inject constructor(
                 )
             )
             .await()
+    }
+
+    /** Records that [userId] deleted their account, so remaining data can be cleaned up by hand. */
+    suspend fun markAccountDeletion(userId: String, role: String) {
+        firestore.collection(ACCOUNT_DELETIONS_COLLECTION)
+            .document(userId)
+            .set(mapOf("uid" to userId, "role" to role, "requestedAt" to FieldValue.serverTimestamp()))
+            .await()
+    }
+
+    suspend fun deleteUser(userId: String) {
+        firestore.collection(USERS_COLLECTION).document(userId).delete().await()
     }
 
     fun observeUser(userId: String): Flow<UserDto?> = callbackFlow {

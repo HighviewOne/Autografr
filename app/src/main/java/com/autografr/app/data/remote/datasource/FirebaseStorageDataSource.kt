@@ -52,6 +52,15 @@ class FirebaseStorageDataSource @Inject constructor(
         return upload(storage.reference.child("$PROFILE_IMAGES_PATH/$userId.jpg"), bytes)
     }
 
+    /** Deletes the user's profile image; having none is fine. */
+    suspend fun deleteProfileImage(userId: String) {
+        try {
+            storage.reference.child("$PROFILE_IMAGES_PATH/$userId.jpg").delete().await()
+        } catch (e: StorageException) {
+            if (e.errorCode != StorageException.ERROR_OBJECT_NOT_FOUND) throw e
+        }
+    }
+
     suspend fun uploadOriginalPhotoBytes(photoId: String, imageBytes: ByteArray): String =
         upload(photoRef(ORIGINAL_PHOTOS_PATH, photoId), imageBytes)
 

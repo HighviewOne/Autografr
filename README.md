@@ -136,6 +136,18 @@ APIs shows "Firebase AI Logic: Basic – Enforced"). Every install needs a valid
 If App Check fails, the button shows "Couldn't write a suggestion right now" and
 logcat has the cause under the `GeminiListing` tag.
 
+#### Account deletion
+
+Play requires in-app account deletion. Profile → ⋮ → **Delete account** asks for the
+password, writes `account_deletions/{uid}` (uid, role, server timestamp), deletes the
+profile image, the `users/{uid}` doc and the Auth account. It does **not** delete
+photos or requests. The privacy policy (`docs/privacy.html`) promises those are
+removed within 30 days, so check `account_deletions` in the Firestore console and
+clean up by hand: the user's unsold `signed_photos`, their `autograph_requests`, and
+their Storage folders. Leave photos another user bought. Deletion requests that
+arrive by email to apps@mirarver.com get the same treatment (also delete the Auth
+user in the console). A Cloud Function can automate this once the project is on Blaze.
+
 #### Celebrity verification
 
 Only celebrities with `verificationStatus: "VERIFIED"` can save autographs or

@@ -1,5 +1,6 @@
 package com.autografr.app.data.remote.datasource
 
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.channels.awaitClose
@@ -35,5 +36,16 @@ class FirebaseAuthDataSource @Inject constructor(
 
     fun signOut() {
         auth.signOut()
+    }
+
+    /** Firebase only lets a recently signed-in user delete their account, so confirm the password first. */
+    suspend fun reauthenticate(password: String) {
+        val user = auth.currentUser ?: throw IllegalStateException("Not signed in")
+        val email = user.email ?: throw IllegalStateException("Account has no email address")
+        user.reauthenticate(EmailAuthProvider.getCredential(email, password)).await()
+    }
+
+    suspend fun deleteCurrentUser() {
+        auth.currentUser?.delete()?.await()
     }
 }

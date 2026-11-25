@@ -11,4 +11,11 @@ interface AuthRepository {
     suspend fun login(email: String, password: String): Result<User>
     suspend fun register(email: String, password: String, displayName: String): Result<User>
     fun logout()
+
+    /**
+     * Permanently deletes the signed-in account after confirming [password]: the profile,
+     * profile image and sign-in. Photos and requests are cleaned up afterwards (see
+     * account_deletions in firestore.rules).
+     */
+    suspend fun deleteAccount(password: String): Result<Unit>
 }

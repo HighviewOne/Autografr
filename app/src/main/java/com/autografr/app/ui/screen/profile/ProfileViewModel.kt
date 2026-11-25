@@ -1,5 +1,6 @@
 package com.autografr.app.ui.screen.profile
 
+import com.autografr.app.usecase.auth.DeleteAccountUseCase
 import com.autografr.app.usecase.auth.LogoutUseCase
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,7 +26,9 @@ data class ProfileUiState(
     val currentUser: User? = null,
     val celebrity: Celebrity? = null,
     val portfolio: List<SignedPhoto> = emptyList(),
-    val collection: List<SignedPhoto> = emptyList()
+    val collection: List<SignedPhoto> = emptyList(),
+    val isDeletingAccount: Boolean = false,
+    val deleteAccountError: String? = null
 )
 
 @HiltViewModel
@@ -34,7 +37,8 @@ class ProfileViewModel @Inject constructor(
     private val getCelebrityProfileUseCase: GetCelebrityProfileUseCase,
     private val getPortfolioUseCase: GetPortfolioUseCase,
     private val updateProfileUseCase: UpdateProfileUseCase,
-    private val logoutUseCase: LogoutUseCase
+    private val logoutUseCase: LogoutUseCase,
+    private val deleteAccountUseCase: DeleteAccountUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -98,5 +102,26 @@ class ProfileViewModel @Inject constructor(
 
     fun signOut() {
         logoutUseCase()
+    }
+
+    fun deleteAccount(password: String, onDeleted: () -> Unit) {
+        if (_uiState.value.isDeletingAccount) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeletingAccount = true, deleteAccountError = null) }
+            when (val result = deleteAccountUseCase(password)) {
+                is Result.Success -> {
+                    _uiState.update { it.copy(isDeletingAccount = false) }
+                    onDeleted()
+                }
+                is Result.Error -> {
+                    _uiState.update { it.copy(isDeletingAccount = false, deleteAccountError = result.message) }
+                }
+                is Result.Loading -> {}
+            }
+        }
+    }
+
+    fun clearDeleteAccountError() {
+        _uiState.update { it.copy(deleteAccountError = null) }
     }
 }

@@ -1,6 +1,6 @@
 import { after, before, beforeEach, describe, test } from 'node:test';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, runTransaction, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { createEnv, photo, request, seed, transaction, user } from './setup.js';
 
 let env;
@@ -50,6 +50,44 @@ describe('users', () => {
 
   test('cannot edit someone else', () =>
     assertFails(updateDoc(doc(as('fan'), 'users/celeb'), { bio: 'hacked' })));
+
+  test('can delete own profile', () =>
+    assertSucceeds(deleteDoc(doc(as('fan'), 'users/fan'))));
+
+  test('cannot delete someone else', () =>
+    assertFails(deleteDoc(doc(as('fan'), 'users/celeb'))));
+});
+
+describe('account_deletions', () => {
+  const marker = (uid, extra = {}) => ({ uid, role: 'FAN', requestedAt: serverTimestamp(), ...extra });
+
+  test('user can mark own deletion', () =>
+    assertSucceeds(setDoc(doc(as('fan'), 'account_deletions/fan'), marker('fan'))));
+
+  test('retry after a failed deletion can overwrite the marker', async () => {
+    await assertSucceeds(setDoc(doc(as('fan'), 'account_deletions/fan'), marker('fan')));
+    await assertSucceeds(setDoc(doc(as('fan'), 'account_deletions/fan'), marker('fan')));
+  });
+
+  test('cannot mark someone else', () =>
+    assertFails(setDoc(doc(as('fan'), 'account_deletions/celeb'), marker('celeb'))));
+
+  test('uid must match the doc', () =>
+    assertFails(setDoc(doc(as('fan'), 'account_deletions/fan'), marker('celeb'))));
+
+  test('client-chosen timestamp denied', () =>
+    assertFails(setDoc(doc(as('fan'), 'account_deletions/fan'), marker('fan', { requestedAt: 1 }))));
+
+  test('extra fields denied', () =>
+    assertFails(setDoc(doc(as('fan'), 'account_deletions/fan'), marker('fan', { email: 'x@example.com' }))));
+
+  test('signed-out cannot write', () =>
+    assertFails(setDoc(doc(env.unauthenticatedContext().firestore(), 'account_deletions/fan'), marker('fan'))));
+
+  test('nobody can read markers from the app', async () => {
+    await setDoc(doc(as('fan'), 'account_deletions/fan'), marker('fan'));
+    await assertFails(getDoc(doc(as('fan'), 'account_deletions/fan')));
+  });
 });
 
 describe('signed_photos create', () => {

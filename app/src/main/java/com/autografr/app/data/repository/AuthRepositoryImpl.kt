@@ -4,11 +4,14 @@ import android.util.Log
 import com.autografr.app.data.local.dao.UserDao
 import com.autografr.app.data.mapper.UserMapper
 import com.autografr.app.data.remote.datasource.FirebaseAuthDataSource
+import com.autografr.app.data.remote.datasource.FirebaseStorageDataSource
 import com.autografr.app.data.remote.datasource.FirestoreDataSource
 import com.autografr.app.data.remote.dto.UserDto
 import com.autografr.app.domain.model.User
 import com.autografr.app.domain.repository.AuthRepository
 import com.autografr.app.domain.util.Result
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -17,6 +20,7 @@ import javax.inject.Inject
 class AuthRepositoryImpl @Inject constructor(
     private val authDataSource: FirebaseAuthDataSource,
     private val firestoreDataSource: FirestoreDataSource,
+    private val storageDataSource: FirebaseStorageDataSource,
     private val userDao: UserDao
 ) : AuthRepository {
 
@@ -84,6 +88,29 @@ class AuthRepositoryImpl @Inject constructor(
 
     override fun logout() {
         authDataSource.signOut()
+    }
+
+    override suspend fun deleteAccount(password: String): Result<Unit> {
+        val userId = authDataSource.currentUserId ?: return Result.error("You're not signed in.")
+        return try {
+            // Re-authenticating first means the final Auth delete won't fail with
+            // "requires recent login" after the profile is already gone.
+            authDataSource.reauthenticate(password)
+            val role = firestoreDataSource.getUser(userId)?.role ?: "FAN"
+            firestoreDataSource.markAccountDeletion(userId, role)
+            storageDataSource.deleteProfileImage(userId)
+            firestoreDataSource.deleteUser(userId)
+            authDataSource.deleteCurrentUser()
+            userDao.deleteUser(userId)
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: FirebaseAuthInvalidCredentialsException) {
+            Result.error("That password isn't right.", e)
+        } catch (e: Exception) {
+            Log.e(TAG, "Account deletion failed", e)
+            Result.error("Couldn't delete your account. Check your connection and try again.", e)
+        }
     }
 
     companion object {
